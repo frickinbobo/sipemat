@@ -1,0 +1,427 @@
+{% extends 'index.html' %} {% block content %}
+
+<!-- <div class="form-control">
+  <label class="label">
+    <span class="label-text text-lg font-semibold">Choose a fruit</span>
+  </label>
+
+  <div class="relative">
+    <input
+      id="fruitInput"
+      type="text"
+      placeholder="Start typing..."
+      class="input input-bordered input-primary w-full"
+      autocomplete="off"
+    />
+  </div>
+</div> -->
+<div class="form-control">
+  <label for="autocomplete" class="label">
+    <span class="label-text">Search Options</span>
+  </label>
+  <div class="relative">
+    <!-- Input with padding for the clear button -->
+    <input
+      type="text"
+      id="autocomplete"
+      class="input input-bordered w-full pr-10"
+      placeholder="Search..."
+      autocomplete="off"
+    />
+
+    <!-- Clear button positioned inside the input -->
+    <button
+      id="clearButton"
+      class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hidden"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </svg>
+    </button>
+
+    <!-- Suggestions dropdown -->
+    <ul
+      id="suggestions"
+      class="absolute w-full mt-2 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto z-10 hidden"
+    ></ul>
+  </div>
+</div>
+<div class="relative overflow-x-auto w-full shadow-md sm:rounded-lg">
+  <!-- Search and Filter Controls -->
+  <div class="mb-4 flex justify-between">
+    <input
+      id="searchInput"
+      type="text"
+      placeholder="Search..."
+      class="input input-bordered w-48"
+    />
+    <select id="filterCategory" class="select select-bordered w-48">
+      <option value="">All Categories</option>
+      <!-- Categories will be populated dynamically -->
+    </select>
+  </div>
+
+  <!-- Table Structure -->
+  <table id="dataTable" class="table w-full table-zebra">
+    <thead id="tableHeader" class="text-lg bg-primary text-white">
+      <!-- Table headers will be generated dynamically -->
+    </thead>
+    <tbody id="tableBody">
+      <!-- Data rows will go here -->
+    </tbody>
+  </table>
+</div>
+{% endblock %} {% block script %}
+<!-- <script type="module">
+  import { createFuzzyCombobox } from "../static/js/fuzzyAutocomplete/fuzzyAutocomplete.js";
+  const fruits = [
+    "Apple",
+    "Apricot",
+    "Banana",
+    "Blueberry",
+    "Black Grape",
+    "Golden Apple",
+    "Pink Lady Apple",
+    "Red Delicious Apple",
+    "Cherry",
+    "Coconut",
+    "Grape",
+    "Green Grape",
+    "Kiwi",
+    "Lemon",
+    "Mango",
+    "Orange",
+    "Peach",
+    "Pear",
+    "Pineapple",
+    "Plum",
+    "Strawberry",
+    "Watermelon",
+  ];
+
+  const input = document.getElementById("fruitInput");
+
+  createFuzzyCombobox({
+    inputElement: input,
+    suggestions: fruits,
+    maxVisible: 5, // optional
+  });
+</script> -->
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
+
+<script>
+  // Your list of options
+  const options = [
+    "Apple",
+    "Banana",
+    "Cherry",
+    "Date",
+    "Fig",
+    "Grape",
+    "Honeydew",
+    "Kiwi",
+    "Lemon",
+    "Mango",
+  ];
+
+  // Fuse.js options
+  const fuse = new Fuse(options, {
+    includeScore: true,
+    threshold: 0.3, // Adjust this for more or less fuzzy searching
+  });
+
+  const input = document.getElementById("autocomplete");
+  const clearButton = document.getElementById("clearButton");
+  const suggestionsList = document.getElementById("suggestions");
+  let highlightedIndex = -1;
+  let filteredOptions = [];
+
+  // Fuzzy search function using Fuse.js
+  function fuzzySearch(query) {
+    if (query) {
+      return fuse.search(query).map((result) => result.item);
+    }
+    return [];
+  }
+
+  // Display options
+  function displayOptions(options) {
+    suggestionsList.innerHTML = ""; // Clear previous suggestions
+    options.forEach((option, index) => {
+      const optionElement = document.createElement("li");
+      optionElement.textContent = option;
+      optionElement.classList.add("p-2", "cursor-pointer", "hover:bg-gray-200");
+
+      if (highlightedIndex === index) {
+        optionElement.classList.add("bg-blue-500", "text-white"); // Highlighted option
+      }
+
+      optionElement.addEventListener("click", () => {
+        selectOption(index);
+      });
+
+      suggestionsList.appendChild(optionElement);
+    });
+
+    suggestionsList.classList.toggle("hidden", options.length === 0);
+  }
+
+  // Select option by index
+  function selectOption(index) {
+    input.value = filteredOptions[index];
+    suggestionsList.classList.add("hidden");
+  }
+
+  // Handle input event
+  input.addEventListener("input", () => {
+    const query = input.value.trim();
+
+    if (query) {
+      filteredOptions = fuzzySearch(query);
+      highlightedIndex = 0; // Reset to first option
+      displayOptions(filteredOptions);
+      clearButton.classList.remove("hidden");
+    } else {
+      filteredOptions = [];
+      highlightedIndex = -1;
+      displayOptions(filteredOptions);
+      clearButton.classList.add("hidden");
+    }
+  });
+
+  // Handle keydown for Enter, Tab, and Arrow keys
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown") {
+      // Move down the list
+      if (highlightedIndex < filteredOptions.length - 1) {
+        highlightedIndex++;
+        displayOptions(filteredOptions);
+      }
+    } else if (event.key === "ArrowUp") {
+      // Move up the list
+      if (highlightedIndex > 0) {
+        highlightedIndex--;
+        displayOptions(filteredOptions);
+      }
+    } else if (event.key === "Enter" || event.key === "Tab") {
+      // Select highlighted option
+      if (highlightedIndex >= 0) {
+        selectOption(highlightedIndex);
+      }
+    }
+  });
+
+  // Clear input when the clear button is clicked
+  clearButton.addEventListener("click", () => {
+    input.value = "";
+    filteredOptions = [];
+    highlightedIndex = -1;
+    displayOptions(filteredOptions);
+    clearButton.classList.add("hidden");
+    input.focus();
+  });
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      // Close suggestions if Esc is pressed
+      suggestionsList.classList.add("hidden");
+    }
+  });
+</script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script> -->
+<!-- <script>
+  // Sample data
+  const tableData = [
+    { id: 1, name: "John Doe", category: "Employee", status: "Active" },
+    { id: 2, name: "Jane Smith", category: "Manager", status: "Inactive" },
+    { id: 3, name: "Tom Brown", category: "Employee", status: "Active" },
+    { id: 4, name: "Alice Johnson", category: "Manager", status: "Active" },
+    { id: 5, name: "Bob Williams", category: "Employee", status: "Inactive" },
+  ];
+
+  // Initial state for sorting, filtering, and search
+  let currentSort = { column: -1, asc: true };
+  let currentCategoryFilter = "";
+  let currentSearchTerm = "";
+
+  // Get DOM elements
+  const searchInput = document.getElementById("searchInput");
+  const filterCategory = document.getElementById("filterCategory");
+  const tableBody = document.getElementById("tableBody");
+  const tableHeader = document.getElementById("tableHeader");
+
+  // Function to render table data
+  function renderTable(data) {
+    // Clear the current table body
+    tableBody.innerHTML = "";
+
+    // Loop through data and create rows
+    data.forEach((row) => {
+      const tr = document.createElement("tr");
+      tr.classList.add("hover:bg-primary/10");
+
+      Object.values(row).forEach((value) => {
+        const td = document.createElement("td");
+        td.classList.add("px-4", "py-2");
+        td.textContent = value;
+        tr.appendChild(td);
+      });
+
+      tableBody.appendChild(tr);
+    });
+  }
+
+  // Function to render table headers dynamically with sorting arrows
+  function renderTableHeader() {
+    const headers = Object.keys(tableData[0]);
+
+    // Clear the current table header
+    tableHeader.innerHTML = "";
+
+    // Create the header row
+    const headerRow = document.createElement("tr");
+    headerRow.classList.add("cursor-pointer");
+
+    headers.forEach((header, index) => {
+      const th = document.createElement("th");
+      th.classList.add("px-4", "py-2", "bg-primary", "text-white");
+      th.classList.add("relative");
+      th.textContent = header.charAt(0).toUpperCase() + header.slice(1); // Capitalize first letter
+
+      // Add sorting arrow if this column is being sorted
+      const sortArrow = document.createElement("span");
+      sortArrow.classList.add("absolute", "right-2", "top-2", "text-lg");
+      if (currentSort.column === index) {
+        sortArrow.textContent = currentSort.asc ? "↑" : "↓";
+      } else {
+        sortArrow.textContent = ""; // No arrow if the column is not sorted
+      }
+
+      th.appendChild(sortArrow);
+
+      // Add event listener to sort when clicked
+      th.addEventListener("click", () => {
+        handleSort(index);
+      });
+
+      headerRow.appendChild(th);
+    });
+
+    tableHeader.appendChild(headerRow);
+  }
+
+  // Sorting functionality
+  function handleSort(columnIndex) {
+    if (currentSort.column === columnIndex) {
+      currentSort.asc = !currentSort.asc;
+    } else {
+      currentSort.column = columnIndex;
+      currentSort.asc = true;
+    }
+
+    // Apply filter, search, and then sorting
+    const filteredData = applyFilter(tableData);
+    const searchedData = applySearch(filteredData);
+    const sortedData = applySorting(searchedData);
+
+    renderTable(sortedData); // Render the final table
+    renderTableHeader(); // Re-render the table header to update the arrow
+  }
+
+  // Function to filter data by category
+  function applyFilter(data) {
+    if (!currentCategoryFilter) return data;
+    return data.filter((row) => row.category === currentCategoryFilter);
+  }
+
+  // Function to search data based on the search term
+  function applySearch(data) {
+    if (!currentSearchTerm) return data;
+    const fuse = new Fuse(data, {
+      keys: ["name", "category", "status"],
+      threshold: 0.3,
+    });
+    const result = fuse.search(currentSearchTerm);
+    return result.map((r) => r.item);
+  }
+
+  // Function to apply sorting on the data
+  function applySorting(data) {
+    return data.sort((a, b) => {
+      const valueA = Object.values(a)[currentSort.column];
+      const valueB = Object.values(b)[currentSort.column];
+      const comparison = valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+      return currentSort.asc ? comparison : -comparison;
+    });
+  }
+
+  // Handle the search input event
+  searchInput.addEventListener("input", (e) => {
+    currentSearchTerm = e.target.value.trim();
+
+    // Apply filter, search, and then sorting
+    const filteredData = applyFilter(tableData);
+    const searchedData = applySearch(filteredData);
+    const sortedData = applySorting(searchedData);
+
+    renderTable(sortedData); // Render the final table
+    renderTableHeader(); // Re-render the table header to update the arrow
+  });
+
+  // Handle category filter change
+  filterCategory.addEventListener("change", (e) => {
+    currentCategoryFilter = e.target.value;
+
+    // Apply filter, search, and then sorting
+    const filteredData = applyFilter(tableData);
+    const searchedData = applySearch(filteredData);
+    const sortedData = applySorting(searchedData);
+
+    renderTable(sortedData); // Render the final table
+    renderTableHeader(); // Re-render the table header to update the arrow
+  });
+
+  // Function to populate the category filter dropdown
+  function populateCategoryFilter() {
+    const categories = [...new Set(tableData.map((row) => row.category))];
+    categories.forEach((category) => {
+      const option = document.createElement("option");
+      option.value = category;
+      option.textContent = category;
+      filterCategory.appendChild(option);
+    });
+  }
+
+  // Initial render
+  renderTableHeader();
+  renderTable(tableData);
+  populateCategoryFilter();
+</script> -->
+
+<script type="module">
+  import { initTable } from "../static/js/table/table.js";
+
+  // External Data supplied from another file
+  const tableData = [
+    { id: 1, name: "John Doe", category: "Employee", status: "Active" },
+    { id: 2, name: "Jane Smith", category: "Manager", status: "Inactive" },
+    { id: 3, name: "Tom Brown", category: "Employee", status: "Active" },
+    { id: 4, name: "Alice Johnson", category: "Manager", status: "Active" },
+    { id: 5, name: "Bob Williams", category: "Employee", status: "Inactive" },
+  ];
+
+  // Initialize the table with the external data
+  initTable(tableData);
+</script>
+{% endblock %}

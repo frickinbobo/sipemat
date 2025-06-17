@@ -1,0 +1,343 @@
+{% extends 'index.html' %} {% block content %}
+<div class="flex mt-4 gap-4 w-full">
+  <div class="card bg-base-100 w-full shadow-sm">
+    <div class="card-body">
+      <h2 class="card-title">Kartu Putih Mahasiswa</h2>
+      <div class="form-control">
+        <label for="autocomplete" class="label">
+          <span class="label-text">NIM Mahasiswa</span>
+        </label>
+        <div class="relative">
+          <!-- Input with padding for the clear button -->
+          <input
+            type="text"
+            id="nim"
+            name="nim"
+            class="input input-bordered min-w-full pr-10"
+            placeholder="Masukkan NIM Mahasiswa"
+            autocomplete="off"
+          />
+
+          <!-- Clear button positioned inside the input -->
+          <button
+            id="clearButton"
+            class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hidden focus:text-gray-800 z-100"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
+          <!-- Suggestions dropdown -->
+          <ul
+            id="suggestions"
+            class="absolute w-full mt-2 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto z-10 hidden"
+          ></ul>
+        </div>
+      </div>
+      <div class="form-control">
+        <label for="autocomplete" class="label">
+          <span class="label-text">Nama Mahasiswa</span>
+        </label>
+        <div class="relative">
+          <!-- Input with padding for the clear button -->
+          <input
+            type="text"
+            id="nama"
+            name="nama"
+            class="input input-bordered min-w-full pr-10"
+            placeholder="Masukkan Nama Mahasiswa"
+            autocomplete="off"
+          />
+
+          <!-- Clear button positioned inside the input -->
+          <button
+            id="clearButton"
+            class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hidden focus:text-gray-800 z-100"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
+          <!-- Suggestions dropdown -->
+          <ul
+            id="suggestions"
+            class="absolute w-full mt-2 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto z-10 hidden"
+          ></ul>
+        </div>
+      </div>
+      <label class="form-control w-full">
+        <div class="label">
+          <span class="label-text-alt">Top Left label</span>
+        </div>
+        <input
+          type="text"
+          placeholder="Type here"
+          class="input input-bordered min-w-full"
+        />
+      </label>
+      <label class="form-control w-full">
+        <div class="label">
+          <span class="label-text">Program Studi Mahasiswa</span>
+        </div>
+        <select
+          id="prodi"
+          name="prodi"
+          class="select select-bordered min-w-full"
+        >
+          <option disabled selected>Pilih Program Studi Mahasiswa</option>
+          <option>Akuntansi</option>
+          <option>Manajemen</option>
+        </select>
+      </label>
+      <div class="form-control">
+        <label for="autocomplete" class="label">
+          <span class="label-text">Pembimbing 1</span>
+        </label>
+        <div class="relative">
+          <!-- Input with padding for the clear button -->
+          <input
+            type="text"
+            id="pembimbing-1"
+            name="pembimbing-1"
+            class="input input-bordered min-w-full pr-10"
+            placeholder="Masukkan Pembimbing 1 Mahasiswa"
+            autocomplete="off"
+          />
+
+          <!-- Clear button positioned inside the input -->
+          <button
+            id="clearButton"
+            class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hidden focus:text-gray-800 z-100"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
+          <!-- Suggestions dropdown -->
+          <ul
+            id="suggestions"
+            class="absolute w-full mt-2 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto z-10 hidden"
+          ></ul>
+        </div>
+      </div>
+      <div class="card-actions justify-end">
+        <button class="btn btn-primary">Buy Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block script %}
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
+<script type="module">
+  import { initializeAutocomplete } from "/static/js/autocomplete/autocomplete.js";
+  const pembimbing1 = document.getElementById("pembimbing-1");
+  const nim = document.getElementById("nim");
+
+  fetch("/api/get/mahasiswa/")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.json(); // Parse JSON response
+    })
+    .then((data) => {
+      initializeAutocomplete(
+        nim,
+        data.map((item) => item.nim.toString()),
+        (selectedOption) => {
+          console.log("Selected option:", selectedOption);
+        }
+      );
+    })
+    .catch((error) => {
+      console.error("Fetch error:", error);
+      console.log("There was an error fetching the data.");
+    });
+
+  fetch("/api/get/dosen/")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.json(); // Parse JSON response
+    })
+    .then((data) => {
+      initializeAutocomplete(
+        pembimbing1,
+        data.map((item) => item.nama),
+        (selectedOption) => {
+          console.log("Selected option:", selectedOption);
+        }
+      );
+    })
+    .catch((error) => {
+      console.error("Fetch error:", error);
+      console.log("There was an error fetching the data.");
+    });
+</script>
+
+<!-- <script>
+  // Your list of options
+  const options = [
+    "Apple",
+    "Banana",
+    "Cherry",
+    "Date",
+    "Fig",
+    "Grape",
+    "Honeydew",
+    "Kiwi",
+    "Lemon",
+    "Mango",
+  ];
+
+  // Fuse.js options
+  const fuse = new Fuse(options, {
+    includeScore: true,
+    threshold: 0.3, // Adjust this for more or less fuzzy searching
+  });
+
+  const input = document.getElementById("autocomplete");
+  const clearButton = document.getElementById("clearButton");
+  const suggestionsList = document.getElementById("suggestions");
+  let highlightedIndex = -1;
+  let filteredOptions = [];
+
+  // Fuzzy search function using Fuse.js
+  function fuzzySearch(query) {
+    if (query) {
+      return fuse.search(query).map((result) => result.item);
+    }
+    return [];
+  }
+
+  // Display options
+  function displayOptions(options) {
+    suggestionsList.innerHTML = ""; // Clear previous suggestions
+    options.forEach((option, index) => {
+      const optionElement = document.createElement("li");
+      optionElement.textContent = option;
+      optionElement.classList.add("p-2", "cursor-pointer", "hover:bg-gray-200");
+
+      if (highlightedIndex === index) {
+        optionElement.classList.add("bg-blue-500", "text-white"); // Highlighted option
+      }
+
+      optionElement.addEventListener("click", () => {
+        selectOption(index);
+      });
+
+      suggestionsList.appendChild(optionElement);
+    });
+
+    suggestionsList.classList.toggle("hidden", options.length === 0);
+  }
+
+  // Select option by index
+  function selectOption(index) {
+    input.value = filteredOptions[index];
+    suggestionsList.classList.add("hidden");
+    clearButton.classList.add("hidden"); // Hide the clear button after selection
+    highlightedIndex = -1; // Reset highlighted index after selection
+  }
+
+  // Handle input event
+  input.addEventListener("input", () => {
+    const query = input.value.trim();
+
+    if (query) {
+      filteredOptions = fuzzySearch(query);
+      highlightedIndex = 0; // Reset to first option
+      displayOptions(filteredOptions);
+      clearButton.classList.remove("hidden");
+    } else {
+      filteredOptions = [];
+      highlightedIndex = -1;
+      displayOptions(filteredOptions);
+      clearButton.classList.add("hidden");
+    }
+  });
+
+  // Handle keydown for Enter, Tab, Arrow keys
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown") {
+      // Move down the list
+      if (highlightedIndex < filteredOptions.length - 1) {
+        highlightedIndex++;
+        displayOptions(filteredOptions);
+      }
+    } else if (event.key === "ArrowUp") {
+      // Move up the list
+      if (highlightedIndex > 0) {
+        highlightedIndex--;
+        displayOptions(filteredOptions);
+      }
+    } else if (event.key === "Enter" || event.key === "Tab") {
+      // Select highlighted option
+      if (highlightedIndex >= 0) {
+        selectOption(highlightedIndex);
+      }
+
+      // Keep clear button visible if there's input in the field
+      if (input.value.trim() !== "") {
+        clearButton.classList.remove("hidden");
+      }
+    }
+  });
+
+  // Clear input when the clear button is clicked
+  clearButton.addEventListener("click", () => {
+    input.value = "";
+    filteredOptions = [];
+    highlightedIndex = -1;
+    displayOptions(filteredOptions);
+    clearButton.classList.add("hidden");
+    input.focus(); // Keep focus on input after clearing
+  });
+
+  // Close suggestions on Escape key press
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      // Close suggestions if Esc is pressed
+      suggestionsList.classList.add("hidden");
+      clearButton.classList.add("hidden"); // Optionally hide the clear button when escaping
+    }
+  });
+</script> -->
+{% endblock %}
