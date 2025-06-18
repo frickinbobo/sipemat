@@ -83,7 +83,7 @@ export function initTable(tableData) {
   function applySearch(data) {
     if (!currentSearchTerm) return data;
     const fuse = new Fuse(data, {
-      keys: ["name", "category", "status"],
+      keys: Object.keys(data[0]),
       threshold: 0.3,
     });
     const result = fuse.search(currentSearchTerm);

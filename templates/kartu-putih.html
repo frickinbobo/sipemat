@@ -1,10 +1,10 @@
 {% extends 'index.html' %} {% block content %}
-<div class="flex mt-4 gap-4 w-full">
-  <div class="card bg-base-100 w-full shadow-sm">
-    <div class="card-body">
-      <h2 class="card-title">Kartu Putih Mahasiswa</h2>
+<div class="card bg-base-100 w-full shadow-sm mt-4">
+  <div class="card-body">
+    <h2 class="card-title">Kartu Putih Mahasiswa</h2>
+    <form>
       <div class="form-control">
-        <label for="autocomplete" class="label">
+        <label for="nim" class="label">
           <span class="label-text">NIM Mahasiswa</span>
         </label>
         <div class="relative">
@@ -47,7 +47,7 @@
         </div>
       </div>
       <div class="form-control">
-        <label for="autocomplete" class="label">
+        <label for="nama" class="label">
           <span class="label-text">Nama Mahasiswa</span>
         </label>
         <div class="relative">
@@ -89,17 +89,7 @@
           ></ul>
         </div>
       </div>
-      <label class="form-control w-full">
-        <div class="label">
-          <span class="label-text-alt">Top Left label</span>
-        </div>
-        <input
-          type="text"
-          placeholder="Type here"
-          class="input input-bordered min-w-full"
-        />
-      </label>
-      <label class="form-control w-full">
+      <label class="form-control w-full" for="prodi">
         <div class="label">
           <span class="label-text">Program Studi Mahasiswa</span>
         </div>
@@ -109,8 +99,8 @@
           class="select select-bordered min-w-full"
         >
           <option disabled selected>Pilih Program Studi Mahasiswa</option>
-          <option>Akuntansi</option>
-          <option>Manajemen</option>
+          <option value="Akuntansi">Akuntansi</option>
+          <option value="Manajemen">Manajemen</option>
         </select>
       </label>
       <div class="form-control">
@@ -156,18 +146,172 @@
           ></ul>
         </div>
       </div>
-      <div class="card-actions justify-end">
-        <button class="btn btn-primary">Buy Now</button>
+      <div class="form-control">
+        <label for="autocomplete" class="label">
+          <span class="label-text">Pembimbing 2</span>
+        </label>
+        <div class="relative">
+          <!-- Input with padding for the clear button -->
+          <input
+            type="text"
+            id="pembimbing-2"
+            name="pembimbing-2"
+            class="input input-bordered min-w-full pr-10"
+            placeholder="Masukkan Pembimbing 2 Mahasiswa"
+            autocomplete="off"
+          />
+
+          <!-- Clear button positioned inside the input -->
+          <button
+            id="clearButton"
+            class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hidden focus:text-gray-800 z-100"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
+          <!-- Suggestions dropdown -->
+          <ul
+            id="suggestions"
+            class="absolute w-full mt-2 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto z-10 hidden"
+          ></ul>
+        </div>
       </div>
+
+      <label class="form-control">
+        <div class="label">
+          <span class="label-text">Judul Proposal Mahasiswa</span>
+        </div>
+        <textarea
+          id="judul"
+          name="judul"
+          class="textarea textarea-bordered min-w-full"
+          placeholder="Masukkan Judul Proposal Mahasiswa"
+        ></textarea>
+        <div class="label"></div>
+      </label>
+      <div class="card-actions flex flex-row-reverse justify-start">
+        <button class="btn btn-primary" type="submit">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-save-icon lucide-save"
+          >
+            <path
+              d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"
+            />
+            <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" />
+            <path d="M7 3v4a1 1 0 0 0 1 1h7" />
+          </svg>
+          Simpan
+        </button>
+        <button class="btn btn-secondary" type="reset">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 18 18 6M6 6l12 12"
+            />
+          </svg>
+          Reset
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="card w-full bg-base-100 shadow-sm mt-4">
+  <div class="card-body">
+    <h2 class="card-title">Data Kartu Putih</h2>
+    <div class="relative overflow-x-auto w-full p-2">
+      <div class="mb-4 flex justify-between">
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="Cari..."
+          class="input input-bordered w-48"
+        />
+        <select id="filterCategory" class="select select-bordered w-48">
+          <option value="">Semua</option>
+        </select>
+      </div>
+
+      <table id="dataTable" class="table w-full table-zebra">
+        <thead id="tableHeader" class="text-lg bg-primary text-white"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
     </div>
   </div>
 </div>
 {% endblock %} {% block script %}
+<script>
+  function findIndexByField(data, field, query) {
+    return data.findIndex((item) => {
+      const value = item[field].toString();
+      if (typeof value === "string") {
+        return value.toLowerCase().includes(query.toLowerCase());
+      }
+      return value === query;
+    });
+  }
+</script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
 <script type="module">
   import { initializeAutocomplete } from "/static/js/autocomplete/autocomplete.js";
-  const pembimbing1 = document.getElementById("pembimbing-1");
   const nim = document.getElementById("nim");
+  const nama = document.getElementById("nama");
+  const pembimbing1 = document.getElementById("pembimbing-1");
+  const pembimbing2 = document.getElementById("pembimbing-2");
+  const prodi = document.getElementById("prodi");
+  let mahasiswa = [];
+  let dosen = [];
+
+  prodi.addEventListener("change", (event) => {
+    console.log(event.target.value);
+    initializeAutocomplete(
+      pembimbing1,
+      dosen
+        .filter((item) => item.prodi === event.target.value)
+        .map((item) => item.nama.toString()),
+      (selectedOption) => {
+        console.log("Selected option:", selectedOption);
+      }
+    );
+    initializeAutocomplete(
+      pembimbing2,
+      dosen
+        .filter((item) => item.prodi === event.target.value)
+        .map((item) => item.nama.toString()),
+      (selectedOption) => {
+        console.log("Selected option:", selectedOption);
+      }
+    );
+  });
 
   fetch("/api/get/mahasiswa/")
     .then((response) => {
@@ -177,11 +321,27 @@
       return response.json(); // Parse JSON response
     })
     .then((data) => {
+      mahasiswa = data;
       initializeAutocomplete(
         nim,
         data.map((item) => item.nim.toString()),
         (selectedOption) => {
           console.log("Selected option:", selectedOption);
+          let index = findIndexByField(data, "nim", selectedOption);
+          nama.value = data[index].nama;
+          prodi.value = data[index].prodi;
+          prodi.dispatchEvent(new Event("change"));
+        }
+      );
+      initializeAutocomplete(
+        nama,
+        data.map((item) => item.nama.toString()),
+        (selectedOption) => {
+          console.log("Selected option:", selectedOption);
+          let index = findIndexByField(data, "nama", selectedOption);
+          nim.value = data[index].nim;
+          prodi.value = data[index].prodi;
+          prodi.dispatchEvent(new Event("change"));
         }
       );
     })
@@ -200,144 +360,141 @@
     .then((data) => {
       initializeAutocomplete(
         pembimbing1,
-        data.map((item) => item.nama),
+        data.map((item) => item.nama.toString()),
         (selectedOption) => {
           console.log("Selected option:", selectedOption);
         }
       );
+      initializeAutocomplete(
+        pembimbing2,
+        data.map((item) => item.nama.toString()),
+        (selectedOption) => {
+          console.log("Selected option:", selectedOption);
+        }
+      );
+      dosen = data;
     })
     .catch((error) => {
       console.error("Fetch error:", error);
       console.log("There was an error fetching the data.");
     });
 </script>
-
-<!-- <script>
-  // Your list of options
-  const options = [
-    "Apple",
-    "Banana",
-    "Cherry",
-    "Date",
-    "Fig",
-    "Grape",
-    "Honeydew",
-    "Kiwi",
-    "Lemon",
-    "Mango",
-  ];
-
-  // Fuse.js options
-  const fuse = new Fuse(options, {
-    includeScore: true,
-    threshold: 0.3, // Adjust this for more or less fuzzy searching
-  });
-
-  const input = document.getElementById("autocomplete");
-  const clearButton = document.getElementById("clearButton");
-  const suggestionsList = document.getElementById("suggestions");
-  let highlightedIndex = -1;
-  let filteredOptions = [];
-
-  // Fuzzy search function using Fuse.js
-  function fuzzySearch(query) {
-    if (query) {
-      return fuse.search(query).map((result) => result.item);
-    }
-    return [];
+<script>
+  // Auto-resize textarea
+  const textarea = document.getElementById("judul");
+  if (textarea) {
+    textarea.addEventListener("input", function () {
+      this.style.height = "auto";
+      this.style.height = this.scrollHeight + "px";
+    });
   }
+</script>
+<script>
+  function getRomanMonth(dateString) {
+    const romanMonths = [
+      "I",
+      "II",
+      "III",
+      "IV",
+      "V",
+      "VI",
+      "VII",
+      "VIII",
+      "IX",
+      "X",
+      "XI",
+      "XII",
+    ];
 
-  // Display options
-  function displayOptions(options) {
-    suggestionsList.innerHTML = ""; // Clear previous suggestions
-    options.forEach((option, index) => {
-      const optionElement = document.createElement("li");
-      optionElement.textContent = option;
-      optionElement.classList.add("p-2", "cursor-pointer", "hover:bg-gray-200");
+    const month = new Date(dateString).getMonth(); // getMonth() returns 0-11
+    return romanMonths[month];
+  }
+  function getYearFromDate(dateString) {
+    const date = new Date(dateString);
+    return date.getFullYear();
+  }
+  function formatIndonesianDate(dateString) {
+    const days = [
+      "Minggu",
+      "Senin",
+      "Selasa",
+      "Rabu",
+      "Kamis",
+      "Jumat",
+      "Sabtu",
+    ];
+    const months = [
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
 
-      if (highlightedIndex === index) {
-        optionElement.classList.add("bg-blue-500", "text-white"); // Highlighted option
+    const date = new Date(dateString);
+    const dayName = days[date.getDay()];
+    const day = date.getDate();
+    const monthName = months[date.getMonth()];
+    const year = date.getFullYear();
+
+    return `${dayName}, ${day} ${monthName} ${year}`;
+  }
+</script>
+<script type="module">
+  import { initTable } from "/static/js/table/table.js";
+
+  // External Data supplied from another file
+  // const tableData = [
+  //   { id: 1, name: "John Doe", category: "Employee", status: "Active" },
+  //   { id: 2, name: "Jane Smith", category: "Manager", status: "Inactive" },
+  //   { id: 3, name: "Tom Brown", category: "Employee", status: "Active" },
+  //   { id: 4, name: "Alice Johnson", category: "Manager", status: "Active" },
+  //   { id: 5, name: "Bob Williams", category: "Employee", status: "Inactive" },
+  // ];
+  fetch("/api/get/kartu-putih/")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
       }
-
-      optionElement.addEventListener("click", () => {
-        selectOption(index);
+      return response.json(); // Parse JSON response
+    })
+    .then((unsorted_data) => {
+      let data = [];
+      let i = 1;
+      unsorted_data.forEach((element) => {
+        data.push({
+          "#": i,
+          NIM: element.nim,
+          "Nama Mahasiswa": element["Nama Mahasiswa"],
+          "Pembimbing 1": element["Nama Pembimbing 1"],
+          "Pembimbing 2": element["Nama Pembimbing 1"],
+          Judul: element.judul,
+          "Nomor Surat":
+            element["Nomor Surat"] !== null
+              ? element["Nomor Surat"].toString() +
+                "/SKP/FEBP/UNHI/" +
+                getRomanMonth(element.tanggal) +
+                "/" +
+                getYearFromDate(element.tanggal)
+              : "",
+          Tanggal: formatIndonesianDate(element.tanggal),
+        });
+        i++;
       });
-
-      suggestionsList.appendChild(optionElement);
+      initTable(data);
+    })
+    .catch((error) => {
+      console.error("Fetch error:", error);
+      console.log("There was an error fetching the data.");
     });
 
-    suggestionsList.classList.toggle("hidden", options.length === 0);
-  }
-
-  // Select option by index
-  function selectOption(index) {
-    input.value = filteredOptions[index];
-    suggestionsList.classList.add("hidden");
-    clearButton.classList.add("hidden"); // Hide the clear button after selection
-    highlightedIndex = -1; // Reset highlighted index after selection
-  }
-
-  // Handle input event
-  input.addEventListener("input", () => {
-    const query = input.value.trim();
-
-    if (query) {
-      filteredOptions = fuzzySearch(query);
-      highlightedIndex = 0; // Reset to first option
-      displayOptions(filteredOptions);
-      clearButton.classList.remove("hidden");
-    } else {
-      filteredOptions = [];
-      highlightedIndex = -1;
-      displayOptions(filteredOptions);
-      clearButton.classList.add("hidden");
-    }
-  });
-
-  // Handle keydown for Enter, Tab, Arrow keys
-  input.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowDown") {
-      // Move down the list
-      if (highlightedIndex < filteredOptions.length - 1) {
-        highlightedIndex++;
-        displayOptions(filteredOptions);
-      }
-    } else if (event.key === "ArrowUp") {
-      // Move up the list
-      if (highlightedIndex > 0) {
-        highlightedIndex--;
-        displayOptions(filteredOptions);
-      }
-    } else if (event.key === "Enter" || event.key === "Tab") {
-      // Select highlighted option
-      if (highlightedIndex >= 0) {
-        selectOption(highlightedIndex);
-      }
-
-      // Keep clear button visible if there's input in the field
-      if (input.value.trim() !== "") {
-        clearButton.classList.remove("hidden");
-      }
-    }
-  });
-
-  // Clear input when the clear button is clicked
-  clearButton.addEventListener("click", () => {
-    input.value = "";
-    filteredOptions = [];
-    highlightedIndex = -1;
-    displayOptions(filteredOptions);
-    clearButton.classList.add("hidden");
-    input.focus(); // Keep focus on input after clearing
-  });
-
-  // Close suggestions on Escape key press
-  input.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      // Close suggestions if Esc is pressed
-      suggestionsList.classList.add("hidden");
-      clearButton.classList.add("hidden"); // Optionally hide the clear button when escaping
-    }
-  });
-</script> -->
+  // Initialize the table with the external data
+</script>
 {% endblock %}

@@ -4,7 +4,6 @@ export function initializeAutocomplete(
   options = [],
   onSelect = null
 ) {
-  console.log(options);
   const clearButton = inputElement.parentElement.querySelector("#clearButton");
   const suggestionsList =
     inputElement.parentElement.querySelector("#suggestions");
@@ -78,6 +77,9 @@ export function initializeAutocomplete(
 
   // Handle keyboard events
   inputElement.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+    }
     if (event.key === "ArrowDown") {
       if (highlightedIndex < filteredOptions.length - 1) {
         highlightedIndex++;
