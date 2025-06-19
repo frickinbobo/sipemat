@@ -60,14 +60,13 @@ def get_kartu_putih():
         FROM kartu k
         JOIN mahasiswa m ON k.nim = m.nim
         JOIN dosen d1 ON k.pembimbing_1 = d1.id_dosen
-        JOIN dosen d2 ON k.pembimbing_2 = d2.id_dosen WHERE k.tipe = 'Putih' ORDER BY k.id_kartu ASC;""")
+        JOIN dosen d2 ON k.pembimbing_2 = d2.id_dosen WHERE k.tipe = 'Putih' ORDER BY k.id_kartu DESC;""")
     rows = cursor.fetchall()
     column_names = [description[0] for description in cursor.description]
-    print(column_names)
     data = []
     for row in rows:
         data.append(dict(zip(column_names, row)))
-    print(data[0])
+        
     conn.close()
     return jsonify(data)
 
