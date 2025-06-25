@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flask Dashboard</title>
+    <script src="{{ url_for('static', filename='js/tailwind/tailwind.js') }}"></script>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/daisyui/daisyui.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/daisyui/daisyui-theme.css') }}"
+    />
+  </head>
+  <body class="bg-base-200 min-h-screen">
+    <!-- Navigation Bar -->
+    <div class="navbar bg-base-100 shadow-lg !px-4 sm:!px-6 lg:!px-8">
+      <!-- Mobile menu button -->
+      <div class="navbar-start">
+        <div class="dropdown">
+          <label tabindex="0" class="btn btn-ghost lg:hidden">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6h16M4 12h8m-8 6h16"
+              />
+            </svg>
+          </label>
+          <ul
+            tabindex="0"
+            class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box !w-52"
+          >
+            <li><a>Dashboard</a></li>
+            <li>
+              <a>Kartu Bimbingan</a>
+              <ul class="p-2">
+                <li><a>Kartu Putih</a></li>
+                <li><a>Kartu Kuning</a></li>
+              </ul>
+            </li>
+            <li>
+              <a>Surat - Surat</a>
+              <ul class="p-2">
+                <li><a>Surat Keterangan Kuliah</a></li>
+                <li><a>Surat Keterangan Lulus</a></li>
+                <li><a>Surat Izin Penelitian</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <!-- Logo text -->
+        <a class="btn btn-ghost normal-case text-xl text-primary">SIPEMAT</a>
+      </div>
+
+      <!-- Desktop menu -->
+      <div class="navbar-center !hidden lg:!flex">
+        <ul class="menu menu-horizontal px-1">
+          <li><a>Dashboard</a></li>
+          <li>
+            <details>
+              <summary>Kartu Bimbingan</summary>
+              <ul class="p-2 bg-base-100 z-10">
+                <li><a>Kartu Putih</a></li>
+                <li><a>Kartu Kuning</a></li>
+              </ul>
+            </details>
+          </li>
+          <li>
+            <details>
+              <summary>Surat - Surat</summary>
+              <ul class="p-2 bg-base-100 z-10 !w-48">
+                <li><a>Surat Keterangan Kuliah</a></li>
+                <li><a>Surat Keterangan Lulus</a></li>
+                <li><a>Surat Izin Penelitian</a></li>
+              </ul>
+            </details>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Right side icons and profile -->
+      <div class="navbar-end">
+        <!-- Notification button -->
+        <button class="btn btn-ghost btn-circle">
+          <div class="indicator">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+              />
+            </svg>
+            <span class="badge badge-xs badge-primary indicator-item"></span>
+          </div>
+        </button>
+
+        <!-- Profile dropdown -->
+        <div class="dropdown dropdown-end">
+          <label tabindex="0" class="btn btn-ghost btn-circle avatar">
+            <div class="w-10 rounded-full">
+              <img src="https://randomuser.me/api/portraits/men/1.jpg" />
+            </div>
+          </label>
+          <ul
+            tabindex="0"
+            class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box !w-24"
+          >
+            <li>
+              <a class="justify-between"> Profile </a>
+            </li>
+            <li><a>Settings</a></li>
+            <li class="divider"></li>
+            <li><a class="text-error">Logout</a></li>
+          </ul>
+        </div>
+        <span class="ml-2 hidden md:inline">John Doe</span>
+      </div>
+    </div>
+
+    <!-- Content area -->
+    <main class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 class="text-3xl font-bold">Dashboard</h1>
+      <p class="mt-2 text-gray-500">Welcome to your dashboard</p>
+      <div id="nim" class="mx-auto my-4"></div>
+      <div id="nama" class="mx-auto my-4"></div>
+      <div id="prodi" class="mx-auto my-4"></div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const dropdowns = [...document.querySelectorAll(".dropdown")];
+        const details = [...document.querySelectorAll("details")];
+
+        /* Helper: close every dropdown except the one passed in */
+        const closeDropdowns = (except = null) => {
+          dropdowns.forEach((dd) => {
+            if (dd !== except) {
+              /* Any focused element inside that dropdown? Blur it. */
+              if (dd.contains(document.activeElement)) {
+                document.activeElement.blur();
+              }
+            }
+          });
+        };
+
+        /* Helper: close every <details> except the one passed in */
+        const closeDetails = (except = null) => {
+          details.forEach((dt) => {
+            if (dt !== except && dt.hasAttribute("open")) {
+              dt.removeAttribute("open");
+            }
+          });
+        };
+
+        /* Global click watcher */
+        document.addEventListener("click", (e) => {
+          const currentDropdown = e.target.closest(".dropdown");
+          const currentDetails = e.target.closest("details");
+
+          closeDropdowns(currentDropdown);
+          closeDetails(currentDetails);
+
+          /* If click is completely outside menus, close everything */
+          if (!currentDropdown && !currentDetails) {
+            closeDropdowns();
+            closeDetails();
+          }
+        });
+      });
+    </script>
+    <script type="module">
+      import { createAutocomplete } from "/static/js/autocomplete/autocomplete.js";
+
+      const data = [
+        { name: "Lorem ipsum", nim: "2102022432", prodi: "Akuntansi" },
+        { name: "Dolor sit", nim: "2102014324", prodi: "Manajemen" },
+        { name: "Amet Consectetur", nim: "2102022384", prodi: "Akuntansi" },
+      ];
+
+      const nimContainer = document.getElementById("nim");
+      const namaContainer = document.getElementById("nama");
+      const prodiContainer = document.getElementById("prodi");
+
+      const nimAutocomplete = createAutocomplete({
+        container: nimContainer,
+        // options: data,
+        displayFields: ["nim", "nama", "prodi"], // what user sees
+        searchFields: ["nim"],
+        selectedFields: ["nim"],
+        minChars: 3, // user must type ≥3 chars
+        debounceMs: 300,
+        // async fetch: called after debounce, receives raw query string
+        fetchOptions: async (query) => {
+          const res = await fetch(
+            `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
+          );
+          if (!res.ok) return []; // basic error handling
+          return await res.json(); // must resolve to array
+        },
+        onSelect: (item) => {
+          console.log("User picked:", item); // your custom logic here
+          namaAutocomplete.setRawValue(item.nama);
+          prodiAutocomplete.setValueBySearch(item.prodi);
+        },
+      });
+      // nimAutocomplete.setValueBySearch("2102014324");
+      // Example: get value
+      // console.log(autocomplete.getValue());
+      // nimAutocomplete.setFetch(async (q) => {
+      //   const res = await fetch(`/another/api?q=${q}`);
+      //   return res.json();
+      // });
+
+      const namaAutocomplete = createAutocomplete({
+        container: namaContainer,
+        // options: data,
+        displayFields: ["nim", "nama", "prodi"], // what user sees
+        searchFields: ["nama"],
+        selectedFields: ["nama"],
+        minChars: 3, // user must type ≥3 chars
+        debounceMs: 300,
+        useFuzzy: true, // ← choose fuzzy search
+        fuse: Fuse, // ← provide Fuse constructor
+        fuseOptions: { threshold: 0.3 },
+        // async fetch: called after debounce, receives raw query string
+        fetchOptions: async (query) => {
+          const res = await fetch(
+            `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
+          );
+          if (!res.ok) return []; // basic error handling
+          return await res.json(); // must resolve to array
+        },
+        onSelect: (item) => {
+          console.log("User picked:", item); // your custom logic here
+          nimAutocomplete.setRawValue(item.nim);
+          prodiAutocomplete.setValueBySearch(item.prodi);
+        },
+      });
+
+      const prodiAutocomplete = createAutocomplete({
+        container: prodiContainer,
+        options: [{ namaProdi: "Akuntansi" }, { namaProdi: "Manajemen" }],
+        displayFields: ["namaProdi"], // what user sees
+        searchFields: ["namaProdi"],
+        selectedFields: ["namaProdi"],
+        minChars: 3, // user must type ≥3 chars
+        debounceMs: 300,
+        // async fetch: called after debounce, receives raw query string
+        // fetchOptions: async (query) => {
+        //   const res = await fetch(
+        //     `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
+        //   );
+        //   if (!res.ok) return []; // basic error handling
+        //   return await res.json(); // must resolve to array
+        // },
+        onSelect: (item) => {
+          console.log("User picked:", item); // your custom logic here
+        },
+      });
+    </script>
+  </body>
+</html>
