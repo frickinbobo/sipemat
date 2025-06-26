@@ -13,6 +13,16 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/daisyui/daisyui-theme.css') }}"
     />
+    <style>
+      /* Hide vertical scrollbar but allow scroll */
+      .scrollbar-none {
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+      }
+      .scrollbar-none::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+      }
+    </style>
   </head>
   <body class="bg-base-200 min-h-screen">
     <!-- Navigation Bar -->
@@ -141,8 +151,42 @@
       <div id="nim" class="mx-auto my-4"></div>
       <div id="nama" class="mx-auto my-4"></div>
       <div id="prodi" class="mx-auto my-4"></div>
+      <div id="table" class="mx-auto my-4"></div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
+    <script>
+      function parseDate(dateString) {
+        if (!dateString) return "Not A Date";
+        const [year, month, day] = dateString.split("-");
+        return [parseInt(year), parseInt(month), parseInt(day)];
+      }
+
+      function monthToRoman(dateString) {
+        if (!dateString) return "Not A Date";
+        // Map numeric months (1-12) to Roman numerals
+        const romans = [
+          "", // placeholder for index 0
+          "I",
+          "II",
+          "III",
+          "IV",
+          "V",
+          "VI",
+          "VII",
+          "VIII",
+          "IX",
+          "X",
+          "XI",
+          "XII",
+        ];
+
+        const month = parseInt(dateString.split("-")[1], 10); // "06" -> 6
+        if (month < 1 || month > 12 || isNaN(month)) {
+          throw new Error("Invalid month in date string");
+        }
+        return romans[month];
+      }
+    </script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const dropdowns = [...document.querySelectorAll(".dropdown")];
@@ -273,6 +317,52 @@
         onSelect: (item) => {
           console.log("User picked:", item); // your custom logic here
         },
+      });
+    </script>
+
+    <script type="module">
+      import DataTable from "/static/js/datatable/datatable.js";
+      const users = [
+        { id: 7, name: "George Clark", email: "george@example.com" },
+        { id: 2, name: "Bob Smith", email: "bob@example.com" },
+        { id: 12, name: "Laura Scott", email: "laura@example.com" },
+        { id: 5, name: "Eli Martinez", email: "eli@example.com" },
+        { id: 14, name: "Nina King", email: "nina@example.com" },
+        { id: 1, name: "Alice Johnson", email: "alice@example.com" },
+        { id: 9, name: "Ian Walker", email: "ian@example.com" },
+        { id: 3, name: "Charlie Brown", email: "charlie@example.com" },
+        { id: 15, name: "Oscar Wright", email: "oscar@example.com" },
+        { id: 6, name: "Fiona Davis", email: "fiona@example.com" },
+        { id: 10, name: "Julia Hall", email: "julia@example.com" },
+        { id: 13, name: "Mike Robinson", email: "mike@example.com" },
+        { id: 4, name: "Dana Williams", email: "dana@example.com" },
+        { id: 8, name: "Hannah Lewis", email: "hannah@example.com" },
+        { id: 11, name: "Kevin Young", email: "kevin@example.com" },
+      ];
+
+      const table = new DataTable({
+        container: "#table",
+        columns: [
+          { key: "id_kartu", label: "ID" },
+          { key: "nim", label: "NIM" },
+          { key: "nama", label: "Nama Mahasiswa" },
+          { key: "prodi", label: "Program Studi" },
+          { key: "p1", label: "Pembimbing 1" },
+          { key: "p2", label: "Pembimbing 2" },
+          { key: "judul", label: "Judul" },
+          {
+            key: "nomor_surat",
+            label: "Nomor Surat",
+            format: (_v, row) =>
+              row.nomor_surat
+                ? `${row.nomor_surat}/FEBP/UNHI/${monthToRoman(row.tanggal)}/${
+                    parseDate(row.tanggal)[0]
+                  }`
+                : "-",
+          },
+        ],
+        dataLoader: () =>
+          fetch("/api/get/kartu-putih/").then((res) => res.json()),
       });
     </script>
   </body>

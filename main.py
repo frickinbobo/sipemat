@@ -54,13 +54,15 @@ def get_kartu_putih():
     cursor = conn.cursor()
 
     cursor.execute("""SELECT 
+        k.id_kartu,
         k.nim,
-        m.nama AS 'Nama Mahasiswa',
-        d1.nama AS 'Nama Pembimbing 1',
-        d2.nama AS 'Nama Pembimbing 2',
+        m.prodi,
+        m.nama,
+        d1.nama AS 'p1',
+        d2.nama AS 'p2',
         k.judul,
         k.tanggal,
-        k.nomor_surat AS 'Nomor Surat'
+        k.nomor_surat
         FROM kartu k
         JOIN mahasiswa m ON k.nim = m.nim
         JOIN dosen d1 ON k.pembimbing_1 = d1.id_dosen
