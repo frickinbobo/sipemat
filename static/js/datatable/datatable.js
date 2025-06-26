@@ -169,7 +169,7 @@ export default class DataTable {
 
     this.pagination = document.createElement("div");
     this.pagination.className =
-      "flex flex-wrap justify-center items-center gap-2";
+      "flex flex-wrap justify-center items-center gap-2 mt-4";
     const pager = document.createElement("div");
     pager.className = "flex flex-wrap justify-center items-center gap-4";
     pager.append(this.rowCountDisplay, this.pagination, this.pageSizeSelect);
@@ -273,7 +273,7 @@ export default class DataTable {
   _renderBody(rows) {
     this.tbody.innerHTML = "";
 
-    // Empty state
+    // Empty-state
     if (!rows.length) {
       const tr = document.createElement("tr");
       const td = document.createElement("td");
@@ -288,21 +288,35 @@ export default class DataTable {
     // Render rows
     rows.forEach((row) => {
       const tr = document.createElement("tr");
+
       this.columns.forEach((col) => {
         const td = document.createElement("td");
-        // Wrap content in a div so max-h works (table-cell ignores height constraints)
-        const wrapper = document.createElement("div");
-        wrapper.className =
+
+        // Wrapper so max-height + overflow work in table cells
+        const wrap = document.createElement("div");
+        wrap.className =
           "max-h-[6rem] overflow-y-auto whitespace-pre-wrap break-words scrollbar-none";
-        const val =
+
+        // Value via per-column formatter → global formatter → raw
+        let val =
           typeof col.format === "function"
             ? col.format(row[col.key], row)
             : this.opts.fieldFormatters[col.key]?.(row[col.key], row) ??
               row[col.key];
-        wrapper.textContent = val;
-        td.append(wrapper);
+
+        // 🌟 NEW: smart rendering
+        if (val instanceof Node) {
+          wrap.append(val); // e.g. a <button> or <span>
+        } else if (typeof val === "string" && /</.test(val)) {
+          wrap.innerHTML = val; // HTML string — render it
+        } else {
+          wrap.textContent = val ?? ""; // plain text / number / null
+        }
+
+        td.append(wrap);
         tr.append(td);
       });
+
       this.tbody.append(tr);
     });
   }

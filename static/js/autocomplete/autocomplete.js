@@ -1,9 +1,8 @@
-// autocomplete.js
-// Pure JavaScript + Tailwind + DaisyUI compatible autocomplete component
+// autocomplete.js – compact public‑API version
 // ------------------------------------------------------------------
-// - scrollIntoView for ↑/↓ navigation
-// - `setRawValue(value)` API
-// - Tab now correctly focuses the next element after selecting with keyboard
+// Pure JavaScript + Tailwind + DaisyUI autocomplete component
+// Key features: debounced static/async search, Fuse.js fuzzy, caching,
+// scroll‑into‑view, Tab/Shift‑Tab navigation, rich public API.
 // ------------------------------------------------------------------
 
 export function createAutocomplete({
@@ -13,6 +12,7 @@ export function createAutocomplete({
   useFuzzy = false,
   fuse = null,
   fuseOptions = {},
+  useCache = true,
   minChars = 3,
   debounceMs = 300,
   displayFields = null,
@@ -31,59 +31,61 @@ export function createAutocomplete({
   if (fetchOptions && typeof fetchOptions !== "function")
     throw new Error("fetchOptions must be a function");
 
-  /* ------------ mutable config ------------ */
   let _display = displayFields,
     _search = searchFields,
     _selected = selectedFields;
   let _min = minChars,
     _debounce = debounceMs;
   let _fetch = fetchOptions,
-    _onSelect = typeof onSelect === "function" ? onSelect : null;
+    _useCache = useCache;
+  let _onSelect = typeof onSelect === "function" ? onSelect : null;
   let _loading = loadingText,
     _nodata = noDataText;
   let _useFuzzy = useFuzzy,
-    Fuse = fuse || window?.Fuse,
+    Fuse = fuse || window.Fuse,
     _fuseOpts = fuseOptions,
     fuseInst = null;
 
-  /* ------------ helpers ------------ */
-  const labelOf = (it) =>
-    typeof it === "string"
-      ? it
-      : (_display?.length ? _display : [Object.keys(it)[0]])
-          .map((k) => it[k])
+  const labelOf = (o) =>
+    typeof o === "string"
+      ? o
+      : (_display?.length ? _display : [Object.keys(o)[0]])
+          .map((k) => o[k])
           .filter(Boolean)
           .join(" - ");
-  const searchOf = (it) =>
-    typeof it === "string"
-      ? it.toLowerCase()
-      : (_search?.length ? _search : _display || Object.keys(it))
-          .map((k) => it[k])
+  const searchOf = (o) =>
+    typeof o === "string"
+      ? o.toLowerCase()
+      : (_search?.length ? _search : _display || Object.keys(o))
+          .map((k) => o[k])
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
-  const valueOf = (it) =>
-    typeof it === "string"
-      ? it
-      : (_selected?.length ? _selected : _display || [Object.keys(it)[0]])
-          .map((k) => it[k])
+  const valueOf = (o) =>
+    typeof o === "string"
+      ? o
+      : (_selected?.length ? _selected : _display || [Object.keys(o)[0]])
+          .map((k) => o[k])
           .filter(Boolean)
           .join(" - ");
 
-  /* focus helper */
-  const focusNext = (el) => {
-    const focusables = [
+  const tabbables = () =>
+    [
       ...document.querySelectorAll(
-        'a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])'
+        'a,button,input,textarea,select,[tabindex]:not([tabindex="-1"])'
       ),
     ].filter((e) => !e.disabled && e.tabIndex >= 0 && e.offsetParent);
-    const idx = focusables.indexOf(el);
-    if (idx > -1 && idx < focusables.length - 1) {
-      focusables[idx + 1].focus();
-    }
+  const focusNext = (el) => {
+    const a = tabbables(),
+      i = a.indexOf(el);
+    if (i > -1 && i < a.length - 1) a[i + 1].focus();
+  };
+  const focusPrev = (el) => {
+    const a = tabbables(),
+      i = a.indexOf(el);
+    if (i > 0) a[i - 1].focus();
   };
 
-  /* ------------ DOM ------------ */
   const wrap = Object.assign(document.createElement("div"), {
     className: wrapperClasses,
   });
@@ -92,16 +94,16 @@ export function createAutocomplete({
     placeholder,
     className: `${inputClasses} !w-full`,
   });
-  const dd = document.createElement("ul");
-  dd.className =
+  const drop = document.createElement("ul");
+  drop.className =
     "absolute left-0 z-10 mt-1 bg-base-100 shadow-lg rounded-box hidden max-h-60 overflow-y-auto";
-  dd.style.width = dropdownWidth;
-  wrap.append(input, dd);
+  drop.style.width = dropdownWidth;
+  wrap.append(input, drop);
   container.append(wrap);
 
-  /* ------------ data ------------ */
   const items = [];
   let src = options.slice();
+  const cache = new Map();
   const hydrate = () => {
     items.length = 0;
     src.forEach((o) => items.push({ o, lab: labelOf(o), s: searchOf(o) }));
@@ -113,27 +115,24 @@ export function createAutocomplete({
   };
   hydrate();
 
-  /* ------------ state ------------ */
   let list = [],
     idx = -1,
     skip = false,
     sel = null,
     timer = null,
-    cache = new Map();
+    recentTab = false;
 
-  /* ------------ UI helpers ------------ */
-  const msg = (h) => {
-    dd.innerHTML = `<li class='p-2 text-center opacity-70'>${h}</li>`;
-    dd.classList.remove("hidden");
+  const msg = (html) => {
+    drop.innerHTML = `<li class='p-2 text-center opacity-70'>${html}</li>`;
+    drop.classList.remove("hidden");
   };
-  const spin = () =>
+  const loading = () =>
     msg(
       `<span class='loading loading-spinner loading-sm mr-2'></span>${_loading}`
     );
   const nodata = () => msg(_nodata);
-
   const render = () => {
-    dd.innerHTML = "";
+    drop.innerHTML = "";
     if (!list.length) {
       nodata();
       return;
@@ -141,18 +140,22 @@ export function createAutocomplete({
     list.forEach((v, i) => {
       const li = document.createElement("li");
       li.textContent = v.lab;
-      li.className = `p-2 cursor-pointer hover:bg-base-200${
-        i === idx ? " bg-base-200" : ""
+      li.className = `p-2 cursor-pointer ${
+        i === idx
+          ? "bg-primary text-primary-content hover:bg-primary"
+          : "hover:bg-base-200"
       }`;
-      li.onclick = () => pick(v);
-      dd.append(li);
+      li.onmousedown = (e) => {
+        e.preventDefault();
+        pick(v);
+      };
+      drop.append(li);
     });
-    dd.classList.remove("hidden");
-    if (idx >= 0 && dd.children[idx])
-      dd.children[idx].scrollIntoView({ block: "nearest" });
+    drop.classList.remove("hidden");
+    if (idx >= 0 && drop.children[idx])
+      drop.children[idx].scrollIntoView({ block: "nearest" });
   };
 
-  /* ------------ filtering ------------ */
   const filter = (q) => {
     const t = q.toLowerCase();
     list =
@@ -162,60 +165,51 @@ export function createAutocomplete({
     idx = list.length ? 0 : -1;
     render();
     if (!skip && t && list.length && list[0].lab.toLowerCase().startsWith(t)) {
-      const sug = list[0].lab;
-      input.value = sug;
-      input.setSelectionRange(t.length, sug.length);
+      input.value = list[0].lab;
+      input.setSelectionRange(t.length, list[0].lab.length);
     }
     skip = false;
   };
-
   const load = (v) => {
-    if (!_fetch) {
-      filter(v);
-      return;
-    }
-    const k = v.toLowerCase();
-    if (cache.has(k)) {
-      src = cache.get(k).slice();
+    if (!_fetch) return filter(v);
+    const key = v.toLowerCase();
+    if (_useCache && cache.has(key)) {
+      src = cache.get(key).slice();
       hydrate();
-      filter(v);
-      return;
+      return filter(v);
     }
-    spin();
-    const r = _fetch(v);
-    const done = (a) => {
-      if (Array.isArray(a)) {
-        cache.set(k, a);
-        src = a.slice();
+    loading();
+    const p = _fetch(v);
+    const done = (arr) => {
+      if (Array.isArray(arr)) {
+        if (_useCache) cache.set(key, arr);
+        src = arr.slice();
         hydrate();
       }
       filter(v);
     };
-    r && typeof r.then === "function"
-      ? r.then(done).catch(() => filter(v))
-      : done(r);
+    p && typeof p.then === "function"
+      ? p.then(done).catch(() => filter(v))
+      : done(p);
   };
-  const oninput = (t) => {
-    if (t.length < _min && _fetch) {
-      dd.classList.add("hidden");
+  const onInput = (v) => {
+    if (v.length < _min && _fetch) {
+      drop.classList.add("hidden");
       return;
     }
     clearTimeout(timer);
-    timer = setTimeout(() => load(t), _debounce);
+    timer = setTimeout(() => load(v), _debounce);
   };
 
-  /* ------------ pick ------------ */
-  const pick = (v) => {
-    sel = v.o;
+  const pick = (n) => {
+    sel = n.o;
     input.value = valueOf(sel);
-    dd.classList.add("hidden");
+    drop.classList.add("hidden");
     input.setSelectionRange(input.value.length, input.value.length);
     _onSelect && _onSelect(sel);
   };
 
-  /* ------------ events ------------ */
-  input.addEventListener("input", (e) => oninput(e.target.value));
-  input.addEventListener("keydown", (e) => {
+  input.onkeydown = (e) => {
     if (["Backspace", "Delete"].includes(e.key)) skip = true;
     if (e.key === "ArrowDown" && list.length) {
       e.preventDefault();
@@ -232,63 +226,71 @@ export function createAutocomplete({
       if (idx !== -1) {
         e.preventDefault();
         pick(list[idx]);
-        focusNext(input);
+        recentTab = true;
+        setTimeout(() => {
+          e.shiftKey ? focusPrev(input) : focusNext(input);
+          recentTab = false;
+        }, 10);
       } else {
-        dd.classList.add("hidden"); /* allow natural tab */
+        drop.classList.add("hidden");
+        if (e.shiftKey) {
+          e.preventDefault();
+          focusPrev(input);
+        }
       }
     }
-  });
-  input.addEventListener("focus", () => {
+  };
+
+  input.oninput = (e) => onInput(e.target.value);
+  input.onfocus = () => {
     if (!_fetch) {
       list = items.slice();
-      idx = -1;
+      idx = list.length ? 0 : -1; // Auto-highlight first option for static data
       render();
     }
-  });
+  };
   document.addEventListener("click", (e) => {
-    if (!wrap.contains(e.target)) dd.classList.add("hidden");
+    if (!wrap.contains(e.target)) drop.classList.add("hidden");
   });
 
-  /* ------------ setValueBySearch ------------ */
   const setValueBySearch = async (term, exact = true) => {
     if (typeof term !== "string") return null;
     const t = term.toLowerCase();
     const fields = _search || [];
-    const fldMatch = (o) => {
-      const keys = fields.length ? fields : Object.keys(o);
-      return keys.some((k) => {
-        const v = o[k];
-        if (typeof v !== "string" && typeof v !== "number") return false;
-        const val = String(v).toLowerCase();
-        return exact ? val === t : val.includes(t);
+    const matcher = (o) =>
+      (fields.length ? fields : Object.keys(o)).some((k) => {
+        const val = o[k];
+        return typeof val === "string"
+          ? val.toLowerCase()[exact ? "includes" : "includes"](t)
+          : false;
       });
+    const tryPick = () => {
+      const hit = items.find(({ o }) => matcher(o));
+      if (hit) pick(hit);
+      return hit?.o || null;
     };
-    let m = items.find(({ o }) => fldMatch(o));
-    if (m) {
-      pick(m);
-      return m.o;
+    let res = tryPick();
+    if (res || !_fetch) return res;
+    const arr = await _fetch(term);
+    if (Array.isArray(arr)) {
+      src = arr.slice();
+      hydrate();
+      res = tryPick();
     }
-    if (_fetch) {
-      const res = await _fetch(term);
-      if (Array.isArray(res)) {
-        src = res;
-        hydrate();
-        m = items.find(({ o }) => fldMatch(o));
-        if (m) pick(m);
-        return m?.o || null;
-      }
-    }
-    return null;
+    return res;
   };
-
-  /* ------------ NEW: setRawValue ------------ */
-  const setRawValue = (val = "") => {
-    input.value = val;
+  const setRawValue = (v = "") => {
+    input.value = v;
     sel = null;
-    dd.classList.add("hidden");
+    drop.classList.add("hidden");
+  };
+  const setUseCache = (b = true) => {
+    _useCache = !!b;
+  };
+  const clearCache = () => {
+    cache.clear();
   };
 
-  /* ------------ API ------------ */
   return {
     getValue: () => input.value,
     getSelectedItem: () => sel,
@@ -297,6 +299,8 @@ export function createAutocomplete({
     },
     setValueBySearch,
     setRawValue,
+    setUseCache,
+    clearCache,
     focus: () => input.focus(),
   };
 }

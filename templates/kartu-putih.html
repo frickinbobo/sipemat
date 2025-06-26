@@ -1,0 +1,254 @@
+{% extends "index.html" %} {% block title %} - Kartu Putih{% endblock %} {%
+block content %}
+<div class="!w-full">
+  <h1 class="text-3xl font-bold mb-4">Kartu Putih</h1>
+  <!-- <p class="mt-2 text-gray-500">Welcome to your dashboard</p> -->
+  <label class="form-control w-full">
+    <div class="label">
+      <span class="label-text">NIM Mahasiswa</span>
+    </div>
+    <div id="nim" class="mx-auto my-2"></div>
+  </label>
+  <label class="form-control w-full">
+    <div class="label">
+      <span class="label-text">Nama Mahasiswa</span>
+    </div>
+    <div id="nama" class="mx-auto my-2"></div>
+  </label>
+  <label class="form-control w-full">
+    <div class="label">
+      <span class="label-text">Program Studi Mahasiswa</span>
+    </div>
+    <div id="prodi" class="mx-auto my-2"></div>
+  </label>
+  <label class="form-control w-full">
+    <div class="label">
+      <span class="label-text">Pembimbing 1 Mahasiswa</span>
+    </div>
+    <div id="pembimbing-1" class="mx-auto my-2"></div>
+  </label>
+  <label class="form-control w-full">
+    <div class="label">
+      <span class="label-text">Pembimbing 2 Mahasiswa</span>
+    </div>
+    <div id="pembimbing-2" class="mx-auto my-2"></div>
+  </label>
+  <label class="form-control !w-full">
+    <div class="label">
+      <span class="label-text">Judul Proposal Mahasiswa</span>
+    </div>
+    <textarea
+      class="textarea textarea-bordered h-24 !w-full my-2"
+      placeholder="Masukkan Judul Proposal Mahasiswa"
+    ></textarea>
+  </label>
+  <input id="dob" class="input input-bordered w-full" type="text" />
+
+  <div id="table" class="mx-auto my-4"></div>
+</div>
+{% endblock %} {% block scripts %}
+<script type="module">
+  import DatePicker from "/static/js/datepicker/datepicker.js";
+  const dp = new DatePicker("#dob", {
+    defaultDate: new Date(),
+    format: "DD-MM-YYYY",
+    onSelect(d, iso) {
+      console.log("picked", iso);
+    },
+  });
+</script>
+<script type="module">
+  import { createAutocomplete } from "/static/js/autocomplete/autocomplete.js";
+
+  const data = [
+    { name: "Lorem ipsum", nim: "2102022432", prodi: "Akuntansi" },
+    { name: "Dolor sit", nim: "2102014324", prodi: "Manajemen" },
+    { name: "Amet Consectetur", nim: "2102022384", prodi: "Akuntansi" },
+  ];
+
+  const nimContainer = document.getElementById("nim");
+  const namaContainer = document.getElementById("nama");
+  const prodiContainer = document.getElementById("prodi");
+  const pembimbing1Container = document.getElementById("pembimbing-1");
+  const pembimbing2Container = document.getElementById("pembimbing-2");
+
+  window.nimAutocomplete = createAutocomplete({
+    container: nimContainer,
+    // options: data,
+    displayFields: ["nim", "nama", "prodi"],
+    searchFields: ["nim"],
+    selectedFields: ["nim"],
+    minChars: 3,
+    debounceMs: 300,
+    placeholder: "Masukkan NIM Mahasiswa",
+    fetchOptions: async (query) => {
+      const res = await fetch(
+        `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
+      );
+      if (!res.ok) return [];
+      return await res.json();
+    },
+    onSelect: (item) => {
+      console.log("User picked:", item);
+      namaAutocomplete.setRawValue(item.nama);
+      prodiAutocomplete.setValueBySearch(item.prodi);
+    },
+  });
+
+  window.namaAutocomplete = createAutocomplete({
+    container: namaContainer,
+    // options: data,
+    displayFields: ["nim", "nama", "prodi"],
+    searchFields: ["nama"],
+    selectedFields: ["nama"],
+    minChars: 3,
+    debounceMs: 300,
+    // useFuzzy: true,
+    // fuse: Fuse,
+    // fuseOptions: { threshold: 0.3 },
+    placeholder: "Masukkan Nama Mahasiswa",
+    fetchOptions: async (query) => {
+      const res = await fetch(
+        `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
+      );
+      if (!res.ok) return [];
+      return await res.json();
+    },
+    onSelect: (item) => {
+      console.log("User picked:", item);
+      nimAutocomplete.setRawValue(item.nim);
+      prodiAutocomplete.setValueBySearch(item.prodi);
+    },
+  });
+
+  window.prodiAutocomplete = createAutocomplete({
+    container: prodiContainer,
+    options: [{ namaProdi: "Akuntansi" }, { namaProdi: "Manajemen" }],
+    displayFields: ["namaProdi"],
+    searchFields: ["namaProdi"],
+    selectedFields: ["namaProdi"],
+    minChars: 3,
+    debounceMs: 300,
+    placeholder: "Masukkan Program Studi Mahasiswa",
+    // fetchOptions: async (query) => {
+    //   const res = await fetch(
+    //     `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
+    //   );
+    //   if (!res.ok) return []; // basic error handling
+    //   return await res.json(); // must resolve to array
+    // },
+    onSelect: (item) => {
+      console.log("User picked:", item);
+    },
+  });
+
+  window.pembimbing1Autocomplete = createAutocomplete({
+    container: pembimbing1Container,
+    // options: data,
+    displayFields: ["nama", "prodi"],
+    searchFields: ["nama"],
+    selectedFields: ["nama"],
+    minChars: 3,
+    debounceMs: 300,
+    useCache: false,
+    placeholder: "Masukkan Pembimbing 1 Mahasiswa",
+    fetchOptions: async (query) => {
+      let prodi = prodiAutocomplete.getValue();
+      const res = await fetch(
+        `/api/get/dosen?q=${encodeURIComponent(query)}&prodi=${prodi}`
+      );
+      if (!res.ok) return [];
+      return await res.json();
+    },
+    onSelect: (item) => {
+      console.log("User picked:", item);
+      //   namaAutocomplete.setRawValue(item.nama);
+      //   prodiAutocomplete.setValueBySearch(item.prodi);
+    },
+  });
+
+  window.pembimbing2Autocomplete = createAutocomplete({
+    container: pembimbing2Container,
+    // options: data,
+    displayFields: ["nama", "prodi"], // what user sees
+    searchFields: ["nama"],
+    selectedFields: ["nama"],
+    minChars: 3,
+    debounceMs: 300,
+    useCache: false,
+    placeholder: "Masukkan Pembimbing 2 Mahasiswa",
+    fetchOptions: async (query) => {
+      let prodi = prodiAutocomplete.getValue();
+      const res = await fetch(
+        `/api/get/dosen?q=${encodeURIComponent(query)}&prodi=${prodi}`
+      );
+      if (!res.ok) return [];
+      return await res.json();
+    },
+    onSelect: (item) => {
+      console.log("User picked:", item);
+      //   namaAutocomplete.setRawValue(item.nama);
+      //   prodiAutocomplete.setValueBySearch(item.prodi);
+    },
+  });
+</script>
+
+<script type="module">
+  import DataTable from "/static/js/datatable/datatable.js";
+  const table = new DataTable({
+    container: "#table",
+    columns: [
+      { key: "id_kartu", label: "ID" },
+      { key: "nim", label: "NIM" },
+      { key: "nama", label: "Nama Mahasiswa" },
+      { key: "prodi", label: "Program Studi" },
+      { key: "p1", label: "Pembimbing 1" },
+      { key: "p2", label: "Pembimbing 2" },
+      { key: "judul", label: "Judul" },
+      {
+        key: "nomor_surat",
+        label: "Nomor Surat",
+        format: (_v, row) =>
+          row.nomor_surat
+            ? `${row.nomor_surat}/FEBP/UNHI/${monthToRoman(row.tanggal)}/${
+                parseDate(row.tanggal)[0]
+              }`
+            : "-",
+      },
+      {
+        key: "action",
+        label: "Aksi",
+        format: (_v, row) => {
+          const container = document.createElement("div");
+          container.className = "join";
+
+          const btnEdit = document.createElement("button");
+          btnEdit.className = "btn btn-xs btn-primary join-item";
+          btnEdit.textContent = "Ubah";
+          btnEdit.onclick = () => {
+            console.log("Edit row", row);
+            nimAutocomplete.setRawValue(row.nim);
+            namaAutocomplete.setRawValue(row.nama);
+            prodiAutocomplete.setValueBySearch(row.prodi);
+            pembimbing1Autocomplete.setRawValue(row.p1);
+            pembimbing2Autocomplete.setRawValue(row.p2);
+            document.querySelector("textarea").value = row.judul;
+          };
+
+          const btnDelete = document.createElement("button");
+          btnDelete.className = "btn btn-xs btn-error join-item";
+          btnDelete.textContent = "Hapus";
+          btnDelete.onclick = () => {
+            console.log("Delete row", row);
+            // Add delete logic here
+          };
+
+          container.append(btnEdit, btnDelete);
+          return container;
+        },
+      },
+    ],
+    dataLoader: () => fetch("/api/get/kartu-putih/").then((res) => res.json()),
+  });
+</script>
+{% endblock %}

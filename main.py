@@ -16,37 +16,21 @@ def kartu_putih():
     return render_template('kartu-putih.html')
 
 
-@app.route("/api/get/dosen/")
-def get_dosen():
-    conn = sqlite3.connect('./db/database.db')
-    cursor = conn.cursor()
+# @app.route("/api/get/mahasiswa/")
+# def get_mahasiswa():
+#     conn = sqlite3.connect('./db/database.db')
+#     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM dosen")
-    rows = cursor.fetchall()
-    column_names = [description[0] for description in cursor.description]
+#     cursor.execute("SELECT * FROM mahasiswa")
+#     rows = cursor.fetchall()
+#     column_names = [description[0] for description in cursor.description]
 
-    data = []
-    for row in rows:
-        data.append(dict(zip(column_names, row)))
-
-    conn.close()
-    return jsonify(data)
-
-@app.route("/api/get/mahasiswa/")
-def get_mahasiswa():
-    conn = sqlite3.connect('./db/database.db')
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM mahasiswa")
-    rows = cursor.fetchall()
-    column_names = [description[0] for description in cursor.description]
-
-    data = []
-    for row in rows:
-        data.append(dict(zip(column_names, row)))
+#     data = []
+#     for row in rows:
+#         data.append(dict(zip(column_names, row)))
         
-    conn.close()
-    return jsonify(data)
+#     conn.close()
+#     return jsonify(data)
 
 @app.route("/api/get/kartu-putih/")
 def get_kartu_putih():
@@ -77,7 +61,7 @@ def get_kartu_putih():
     return jsonify(data)
 
 
-def get_mahasiswa(term: str) -> list[dict]:
+def api_get_mahasiswa(term: str) -> list[dict]:
     """
     Return a list of option objects that match *term*.
     Shape must match what your autocomplete expects
@@ -99,13 +83,51 @@ def get_mahasiswa(term: str) -> list[dict]:
     return [{"nama": r[0], "nim": r[1], "prodi": r[2]} for r in rows]
 
 @app.get("/api/get/mahasiswa")
-def api_students():
+def api_get_mahasiswa_query():
     q = request.args.get("q", "").strip()
     if len(q) < 3:
         return jsonify([])
-    results = get_mahasiswa(q)
+    results = api_get_mahasiswa(q)
     return jsonify(results)
 
+
+def api_get_dosen(term: str, prodi: str) -> list[dict]:
+    """
+    Return a list of option objects that match *term*.
+    Shape must match what your autocomplete expects
+    (e.g. name / nim / prodi keys).
+    """
+    conn = sqlite3.connect('./db/database.db')
+    cur = conn.cursor()
+    if prodi:
+        cur.execute("""
+            SELECT nama, prodi
+            FROM dosen
+            WHERE nama  LIKE ? AND
+                  prodi LIKE ?
+            LIMIT 20;
+        """, (f"%{term}%", f"%{prodi}%"))
+    else:
+        cur.execute("""
+            SELECT nama, prodi
+            FROM dosen
+            WHERE nama  LIKE ?
+            LIMIT 20;
+        """, (f"%{term}%",))
+    rows = cur.fetchall()
+    conn.close()
+
+    return [{"nama": r[0], "prodi": r[1]} for r in rows]
+
+
+@app.get("/api/get/dosen")
+def api_get_dosen_query():
+    q = request.args.get("q", "").strip()
+    prodi = request.args.get("prodi", "").strip()
+    if len(q) < 3:
+        return jsonify([])
+    results = api_get_dosen(q, prodi)
+    return jsonify(results)
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5678)

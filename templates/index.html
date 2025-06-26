@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Flask Dashboard</title>
+    <title>SIPEMAT{% block title %}{% endblock %}</title>
     <script src="{{ url_for('static', filename='js/tailwind/tailwind.js') }}"></script>
     <link
       rel="stylesheet"
@@ -21,6 +21,12 @@
       }
       .scrollbar-none::-webkit-scrollbar {
         display: none; /* Chrome, Safari, Opera */
+      }
+      [data-theme="dark"] .table-zebra tbody tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      [data-theme="light"] .table-zebra tbody tr:nth-child(even) td {
+        background-color: #f9fafb;
       }
     </style>
   </head>
@@ -54,7 +60,7 @@
             <li>
               <a>Kartu Bimbingan</a>
               <ul class="p-2">
-                <li><a>Kartu Putih</a></li>
+                <li><a href="/kartu-bimbingan/kartu-putih/">Kartu Putih</a></li>
                 <li><a>Kartu Kuning</a></li>
               </ul>
             </li>
@@ -80,7 +86,7 @@
             <details>
               <summary>Kartu Bimbingan</summary>
               <ul class="p-2 bg-base-100 z-10">
-                <li><a>Kartu Putih</a></li>
+                <li><a href="/kartu-bimbingan/kartu-putih/">Kartu Putih</a></li>
                 <li><a>Kartu Kuning</a></li>
               </ul>
             </details>
@@ -100,6 +106,31 @@
 
       <!-- Right side icons and profile -->
       <div class="navbar-end">
+        <!-- Dark-mode toggle (uses DaisyUI “swap” component) -->
+        <label class="swap swap-rotate mx-1" title="Toggle dark mode">
+          <!-- Checkbox drives the swap; JS will also flip it -->
+          <input type="checkbox" id="theme-toggle" class="hidden" />
+
+          <!-- Shown while dark mode is ON (user sees a sun → can switch back to light) -->
+          <svg
+            class="swap-on w-6 h-6 fill-current"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M5.64 17.66l-.7.7 1.41 1.41.7-.7M3 13H1v-2h2m10 8h-2v2h2m8-10h2v2h-2m-2.05-5.66l1.41-1.41-.7-.71-1.41 1.41M18.36 17.66l1.41 1.41.71-.7-1.41-1.41M12 6a6 6 0 100 12 6 6 0 000-12zm0-4h-2v2h2m6 2l.71-.71-1.42-1.42-.7.71"
+            />
+          </svg>
+
+          <!-- Shown while dark mode is OFF (user sees a moon → can switch to dark) -->
+          <svg
+            class="swap-off w-6 h-6 fill-current"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 1021 12.79z" />
+          </svg>
+        </label>
         <!-- Notification button -->
         <button class="btn btn-ghost btn-circle">
           <div class="indicator">
@@ -145,16 +176,35 @@
     </div>
 
     <!-- Content area -->
-    <main class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 class="text-3xl font-bold">Dashboard</h1>
-      <p class="mt-2 text-gray-500">Welcome to your dashboard</p>
-      <div id="nim" class="mx-auto my-4"></div>
-      <div id="nama" class="mx-auto my-4"></div>
-      <div id="prodi" class="mx-auto my-4"></div>
-      <div id="table" class="mx-auto my-4"></div>
+    <main class="!w-full !mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {% block content %} {% endblock %}
     </main>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
     <script>
+      (() => {
+        const html = document.documentElement; // <html> root
+        const toggle = document.getElementById("theme-toggle");
+
+        // Helper functions
+        const setTheme = (mode) => {
+          html.setAttribute("data-theme", mode);
+          localStorage.setItem("theme", mode);
+          toggle.checked = mode === "dark";
+        };
+
+        // ① Start with saved pref, else system setting
+        const saved = localStorage.getItem("theme");
+        const system = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        setTheme(saved ?? (system ? "dark" : "light"));
+
+        // ② Flip on toggle
+        toggle.addEventListener("change", () =>
+          setTheme(toggle.checked ? "dark" : "light")
+        );
+      })();
+
       function parseDate(dateString) {
         if (!dateString) return "Not A Date";
         const [year, month, day] = dateString.split("-");
@@ -229,141 +279,6 @@
         });
       });
     </script>
-    <script type="module">
-      import { createAutocomplete } from "/static/js/autocomplete/autocomplete.js";
-
-      const data = [
-        { name: "Lorem ipsum", nim: "2102022432", prodi: "Akuntansi" },
-        { name: "Dolor sit", nim: "2102014324", prodi: "Manajemen" },
-        { name: "Amet Consectetur", nim: "2102022384", prodi: "Akuntansi" },
-      ];
-
-      const nimContainer = document.getElementById("nim");
-      const namaContainer = document.getElementById("nama");
-      const prodiContainer = document.getElementById("prodi");
-
-      const nimAutocomplete = createAutocomplete({
-        container: nimContainer,
-        // options: data,
-        displayFields: ["nim", "nama", "prodi"], // what user sees
-        searchFields: ["nim"],
-        selectedFields: ["nim"],
-        minChars: 3, // user must type ≥3 chars
-        debounceMs: 300,
-        // async fetch: called after debounce, receives raw query string
-        fetchOptions: async (query) => {
-          const res = await fetch(
-            `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
-          );
-          if (!res.ok) return []; // basic error handling
-          return await res.json(); // must resolve to array
-        },
-        onSelect: (item) => {
-          console.log("User picked:", item); // your custom logic here
-          namaAutocomplete.setRawValue(item.nama);
-          prodiAutocomplete.setValueBySearch(item.prodi);
-        },
-      });
-      // nimAutocomplete.setValueBySearch("2102014324");
-      // Example: get value
-      // console.log(autocomplete.getValue());
-      // nimAutocomplete.setFetch(async (q) => {
-      //   const res = await fetch(`/another/api?q=${q}`);
-      //   return res.json();
-      // });
-
-      const namaAutocomplete = createAutocomplete({
-        container: namaContainer,
-        // options: data,
-        displayFields: ["nim", "nama", "prodi"], // what user sees
-        searchFields: ["nama"],
-        selectedFields: ["nama"],
-        minChars: 3, // user must type ≥3 chars
-        debounceMs: 300,
-        useFuzzy: true, // ← choose fuzzy search
-        fuse: Fuse, // ← provide Fuse constructor
-        fuseOptions: { threshold: 0.3 },
-        // async fetch: called after debounce, receives raw query string
-        fetchOptions: async (query) => {
-          const res = await fetch(
-            `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
-          );
-          if (!res.ok) return []; // basic error handling
-          return await res.json(); // must resolve to array
-        },
-        onSelect: (item) => {
-          console.log("User picked:", item); // your custom logic here
-          nimAutocomplete.setRawValue(item.nim);
-          prodiAutocomplete.setValueBySearch(item.prodi);
-        },
-      });
-
-      const prodiAutocomplete = createAutocomplete({
-        container: prodiContainer,
-        options: [{ namaProdi: "Akuntansi" }, { namaProdi: "Manajemen" }],
-        displayFields: ["namaProdi"], // what user sees
-        searchFields: ["namaProdi"],
-        selectedFields: ["namaProdi"],
-        minChars: 3, // user must type ≥3 chars
-        debounceMs: 300,
-        // async fetch: called after debounce, receives raw query string
-        // fetchOptions: async (query) => {
-        //   const res = await fetch(
-        //     `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
-        //   );
-        //   if (!res.ok) return []; // basic error handling
-        //   return await res.json(); // must resolve to array
-        // },
-        onSelect: (item) => {
-          console.log("User picked:", item); // your custom logic here
-        },
-      });
-    </script>
-
-    <script type="module">
-      import DataTable from "/static/js/datatable/datatable.js";
-      const users = [
-        { id: 7, name: "George Clark", email: "george@example.com" },
-        { id: 2, name: "Bob Smith", email: "bob@example.com" },
-        { id: 12, name: "Laura Scott", email: "laura@example.com" },
-        { id: 5, name: "Eli Martinez", email: "eli@example.com" },
-        { id: 14, name: "Nina King", email: "nina@example.com" },
-        { id: 1, name: "Alice Johnson", email: "alice@example.com" },
-        { id: 9, name: "Ian Walker", email: "ian@example.com" },
-        { id: 3, name: "Charlie Brown", email: "charlie@example.com" },
-        { id: 15, name: "Oscar Wright", email: "oscar@example.com" },
-        { id: 6, name: "Fiona Davis", email: "fiona@example.com" },
-        { id: 10, name: "Julia Hall", email: "julia@example.com" },
-        { id: 13, name: "Mike Robinson", email: "mike@example.com" },
-        { id: 4, name: "Dana Williams", email: "dana@example.com" },
-        { id: 8, name: "Hannah Lewis", email: "hannah@example.com" },
-        { id: 11, name: "Kevin Young", email: "kevin@example.com" },
-      ];
-
-      const table = new DataTable({
-        container: "#table",
-        columns: [
-          { key: "id_kartu", label: "ID" },
-          { key: "nim", label: "NIM" },
-          { key: "nama", label: "Nama Mahasiswa" },
-          { key: "prodi", label: "Program Studi" },
-          { key: "p1", label: "Pembimbing 1" },
-          { key: "p2", label: "Pembimbing 2" },
-          { key: "judul", label: "Judul" },
-          {
-            key: "nomor_surat",
-            label: "Nomor Surat",
-            format: (_v, row) =>
-              row.nomor_surat
-                ? `${row.nomor_surat}/FEBP/UNHI/${monthToRoman(row.tanggal)}/${
-                    parseDate(row.tanggal)[0]
-                  }`
-                : "-",
-          },
-        ],
-        dataLoader: () =>
-          fetch("/api/get/kartu-putih/").then((res) => res.json()),
-      });
-    </script>
+    {% block scripts %} {% endblock %}
   </body>
 </html>
