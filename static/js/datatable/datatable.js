@@ -159,7 +159,7 @@ export default class DataTable {
     ctr.append(left);
 
     const tableWrapper = document.createElement("div");
-    tableWrapper.className = "overflow-x-auto w-full";
+    tableWrapper.className = "overflow-x-auto w-full mb-4";
     this.table = document.createElement("table");
     this.table.className = "table table-zebra w-full";
     this.thead = document.createElement("thead");
@@ -169,7 +169,7 @@ export default class DataTable {
 
     this.pagination = document.createElement("div");
     this.pagination.className =
-      "flex flex-wrap justify-center items-center gap-2 mt-4";
+      "flex flex-wrap justify-center items-center gap-2";
     const pager = document.createElement("div");
     pager.className = "flex flex-wrap justify-center items-center gap-4";
     pager.append(this.rowCountDisplay, this.pagination, this.pageSizeSelect);

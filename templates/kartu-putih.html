@@ -42,16 +42,40 @@ block content %}
       placeholder="Masukkan Judul Proposal Mahasiswa"
     ></textarea>
   </label>
-  <input id="dob" class="input input-bordered w-full" type="text" />
+  <label class="form-control !w-full">
+    <div class="label">
+      <span class="label-text">Tanggal Surat Tugas</span>
+    </div>
+    <input
+      id="datepicker"
+      class="input input-bordered !w-full my-2"
+      type="text"
+    />
+  </label>
+  <label class="form-control !w-full">
+    <div class="label">
+      <span class="label-text">Nomor Surat Tugas</span>
+    </div>
+    <input
+      id="datepicker"
+      class="input input-bordered !w-full my-2"
+      type="number"
+    />
+  </label>
 
   <div id="table" class="mx-auto my-4"></div>
 </div>
 {% endblock %} {% block scripts %}
 <script type="module">
   import DatePicker from "/static/js/datepicker/datepicker.js";
-  const dp = new DatePicker("#dob", {
+  const dp = new DatePicker("#datepicker", {
+    showResetButton: true,
+    resetBehavior: "clear",
     defaultDate: new Date(),
-    format: "DD-MM-YYYY",
+    selectDefaultDate: true,
+    dateFormat: "DD MMMM YYYY",
+    todayLabel: "Hari Ini",
+    locale: "id-ID",
     onSelect(d, iso) {
       console.log("picked", iso);
     },
