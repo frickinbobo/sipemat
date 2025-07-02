@@ -72,6 +72,7 @@
  *   picker.getDate()            → Get selected date (Date object or null)
  *   picker.setDate(date)        → Set selected date (Date, string, or null)
  *   picker.setOptions(opts)     → Update config on the fly
+ *   picker.setPlaceholder(text)  → Change or clear the input’s placeholder
  *   picker.setTodayLabel(text)  → Change "Today" button text at runtime
  *   picker.setDefaultDate(date, apply?) → Change stored default date
  *   picker.resetToDefault(apply?)      → Revert to the stored default date
@@ -107,6 +108,7 @@ export default class DatePicker {
     autoClose: false,
     showTodayButton: true,
     todayLabel: "Today",
+    placeholder: "",
     showClearButton: false,
     locale: undefined,
     showResetButton: false,
@@ -119,8 +121,13 @@ export default class DatePicker {
   };
   constructor(i, o = {}) {
     this.input = typeof i === "string" ? document.querySelector(i) : i;
+    this.input.readOnly = true;
+    this.input.classList.add("cursor-pointer");
+    this.input.addEventListener("paste", (e) => e.preventDefault());
+    this._justClosedAt = 0;
     if (!this.input) throw new Error("DatePicker: input not found");
     this.config = { ...DatePicker.defaults, ...o };
+    this.input.placeholder = this.config.placeholder || "";
     ["onselect", "onfocus", "ondestroy", "oninit"].forEach((k) => {
       if (k in o) {
         const camel = "on" + k.slice(2, 3).toUpperCase() + k.slice(3);
@@ -149,39 +156,34 @@ export default class DatePicker {
     this.config.onInit(this);
   }
   show() {
-    // If the panel is already visible, do nothing
+    // If it’s already open, do nothing
     if (!this.panel.classList.contains("hidden")) return;
 
-    // 1. Reveal and position
+    /* 1.  Reveal and position the dropdown */
     this.panel.classList.remove("hidden");
-    this._position(); // keeps all your existing placement logic
+    this._position(); // keeps your existing placement logic
 
-    // 2. Optional, minimal scrolling
-    if (this.config.autoScroll) {
-      const rect = this.panel.getBoundingClientRect();
+    /* 2.  Ensure the entire panel is in view (vertical only) */
+    const rect = this.panel.getBoundingClientRect();
+    const buffer = 4; // small breathing room
+    let deltaY = 0; // how much we need to scroll
 
-      const fullyVisible =
-        rect.top >= 0 &&
-        rect.left >= 0 &&
-        rect.bottom <= window.innerHeight &&
-        rect.right <= window.innerWidth;
-
-      /* If ANY edge is out of view, scroll just enough so that the nearest
-       edge becomes visible. This avoids large jumps when only 1 px was
-       originally overflowing. */
-      if (!fullyVisible) {
-        this.panel.scrollIntoView({
-          block: "nearest",
-          inline: "nearest",
-          behavior: "smooth",
-        });
-      }
+    if (rect.bottom + buffer > window.innerHeight) {
+      // Panel sticks out below the viewport → scroll down just enough
+      deltaY = rect.bottom - window.innerHeight + buffer;
+    } else if (rect.top - buffer < 0) {
+      // Panel sticks out above the viewport → scroll up just enough
+      deltaY = rect.top - buffer; // negative value scrolls upward
     }
 
-    // 3. Move focus to the appropriate date button
-    this._focusDate(this.selectedDate || new Date());
+    if (deltaY !== 0) {
+      window.scrollBy({ top: deltaY, behavior: "smooth" });
+    }
 
-    // 4. Fire lifecycle hook
+    /* 3.  Put focus on the selected date (or today) WITHOUT more scrolling */
+    this._focusDate(this.selectedDate || new Date(), /*preventScroll=*/ true);
+
+    /* 4.  Fire lifecycle hook */
     this.config.onFocus(this);
   }
   hide() {
@@ -223,6 +225,10 @@ export default class DatePicker {
     this.config.todayLabel = txt ?? DatePicker.defaults.todayLabel;
     if (this.todayBtn) this.todayBtn.textContent = this.config.todayLabel;
   }
+  setPlaceholder(text = "") {
+    this.input.placeholder = text ?? "";
+    return this; // for fluent chaining if you like
+  }
   setDefaultDate(d, apply = true) {
     this.config.defaultDate = d ? new Date(d) : null;
     if (apply) this.setDate(d);
@@ -232,6 +238,31 @@ export default class DatePicker {
       this.setDate(this.config.defaultDate);
     }
     return this.config.defaultDate;
+  }
+  resetToToday(apply = true) {
+    // 1.  Get today's date at local midnight (strip hours/min/sec)
+    let today = new Date();
+    today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    // 2.  Clamp to min/max boundaries if they exist
+    if (this.minDate && today < this._strip(this.minDate)) {
+      today = this._strip(this.minDate);
+    }
+    if (this.maxDate && today > this._strip(this.maxDate)) {
+      today = this._strip(this.maxDate);
+    }
+
+    // 3.  Apply or just view
+    if (apply) {
+      this.setDate(today); // updates UI + fires hooks
+    } else {
+      this.currentYear = today.getFullYear();
+      this.currentMonth = today.getMonth();
+      this._renderCalendar();
+      this._focusDate(today);
+    }
+
+    return today; // convenient return value
   }
   destroy() {
     this.config.onDestroy(this);
@@ -245,9 +276,8 @@ export default class DatePicker {
   _format(d) {
     if (!d) return "";
 
-    // 1️⃣  Build a cache of localized month names the first time we need them
     if (!this._monthCache) {
-      const loc = this.config.locale || undefined; // e.g. "fr", "id-ID"
+      const loc = this.config.locale || undefined;
       const fmtLong = new Intl.DateTimeFormat(loc, { month: "long" });
       const fmtShort = new Intl.DateTimeFormat(loc, { month: "short" });
       this._monthCache = {
@@ -273,12 +303,12 @@ export default class DatePicker {
       D: d.getDate(),
     };
 
-    // 2️⃣  Replace longest tokens first so MMMM doesn't get hit by MMM, etc.
     let out = this.config.dateFormat || "YYYY-MM-DD";
+
     Object.keys(map)
       .sort((a, b) => b.length - a.length)
       .forEach((k) => {
-        out = out.replaceAll(k, map[k]);
+        out = out.replace(new RegExp(`\\b${k}\\b`, "g"), map[k]);
       });
 
     return out;
@@ -311,7 +341,7 @@ export default class DatePicker {
     this.panel.style.top = `${r.bottom + t}px`;
     this.panel.style.left = `${r.left + l}px`;
   }
-  _focusDate(d) {
+  _focusDate(d, preventScroll = false) {
     const off =
       d.getFullYear() < this.currentYear ||
       (d.getFullYear() === this.currentYear && d.getMonth() < this.currentMonth)
@@ -321,10 +351,19 @@ export default class DatePicker {
             d.getMonth() > this.currentMonth)
         ? 1
         : 0;
-    const b = this.panel.querySelector(
+
+    const btn = this.panel.querySelector(
       `button[data-action="day"][data-day="${d.getDate()}"][data-offset="${off}"]`
     );
-    if (b) b.focus();
+
+    if (btn) {
+      // Modern browsers support preventScroll; fall back if not available
+      try {
+        btn.focus({ preventScroll });
+      } catch {
+        btn.focus();
+      }
+    }
   }
   _btn(l, a, e = "") {
     const b = document.createElement("button");
@@ -354,7 +393,9 @@ export default class DatePicker {
     this.yearSelect.value = this.currentYear;
   }
   _unbindEvents() {
+    this.input.removeEventListener("click", this._onInputClick);
     this.input.removeEventListener("focus", this._onInputFocus);
+    this.input.removeEventListener("keydown", this._onInputKeyDown);
     document.removeEventListener("click", this._onDocClick);
     document.removeEventListener("keydown", this._onKeyDown);
     this.panel.removeEventListener("click", this._onPanelClick);
@@ -484,7 +525,7 @@ export default class DatePicker {
       resetBtn.type = "button";
       resetBtn.innerHTML = "✕";
       resetBtn.className =
-        "absolute right-2 top-1/2 -translate-y-1/2 text-base-content opacity-60 hover:opacity-100";
+        "absolute right-2 top-1/2 -translate-y-1/2 text-base-content opacity-60 hover:opacity-100 px-2 cursor-pointer";
       resetBtn.tabIndex = -1;
       resetBtn.dataset.action = "reset";
 
@@ -560,18 +601,59 @@ export default class DatePicker {
       this.footerEl
     );
     // this.input.parentNode.insertBefore(this.panel, this.input.nextSibling);
-    const anchor = this.config.showResetButton
-      ? this.input.parentNode
-      : this.input;
-    anchor.parentNode.insertBefore(this.panel, anchor.nextSibling);
+    // const anchor = this.config.showResetButton
+    //   ? this.input.parentNode
+    //   : this.input;
+    // anchor.parentNode.insertBefore(this.panel, anchor.nextSibling);
+    document.body.appendChild(this.panel);
     this._syncHeaderSelectors();
     this._renderCalendar();
   }
   _bindEvents() {
-    this._onInputFocus = () => this.show();
+    this._onInputFocus = () => {
+      // Skip if we literally just closed the panel (<80 ms ago)
+      if (Date.now() - this._justClosedAt < 80) return;
+      this.show();
+    };
+    this._onInputKeyDown = (e) => {
+      // Do nothing if the panel is already visible
+      if (!this.panel.classList.contains("hidden")) return;
+
+      /* SPACE detection – covers every browser quirk */
+      const isSpace =
+        e.keyCode === 32 ||
+        e.code === "Space" ||
+        e.key === " " ||
+        e.key === "Space" ||
+        e.key === "Spacebar";
+
+      /* ARROW keys we want to intercept */
+      const arrowKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+      const isArrow = arrowKeys.includes(e.key);
+
+      if (isSpace || isArrow) {
+        e.preventDefault(); // stop scrolling / caret move
+        e.stopImmediatePropagation(); // block native nav
+        this.show(); // open & focus last‑selected date
+        return;
+      }
+
+      // All other keys fall through (input behaves normally)
+    };
     this._onDocClick = (e) => {
-      if (!this.panel.contains(e.target) && e.target !== this.input)
+      // If the panel is already hidden, nothing to do
+      if (this.panel.classList.contains("hidden")) return;
+
+      const path = e.composedPath ? e.composedPath() : [];
+      const clickedInsidePanel = this.panel.contains(e.target);
+      const clickedOnInput = this.input.contains(e.target);
+      const clickedOnInputWrap = path.includes(this.input); // covers wrapper
+
+      if (!clickedInsidePanel && !clickedOnInput && !clickedOnInputWrap) {
         this.hide();
+        this._justClosedAt = Date.now(); // guard so the focus event won't reopen
+        // (no need to focus input—click already went elsewhere)
+      }
     };
     this._onPanelClick = (e) => {
       const a = e.target.dataset.action;
@@ -583,12 +665,31 @@ export default class DatePicker {
         case "next":
           this._changeMonth(1);
           break;
-        case "day":
-          this._selectDay(
-            parseInt(e.target.dataset.day, 10),
-            parseInt(e.target.dataset.offset, 10)
-          );
+        case "day": {
+          const day = parseInt(e.target.dataset.day, 10);
+          const offset = parseInt(e.target.dataset.offset, 10);
+          this._selectDay(day, offset);
+
+          if (this.config.autoClose) {
+            this.hide(); // hide the panel
+            this._justClosedAt = Date.now(); // prevent immediate reopen
+
+            // Force blur the day button to avoid it keeping focus
+            if (document.activeElement) document.activeElement.blur();
+
+            // ⏳ Force input to regain focus on next tick
+            setTimeout(() => {
+              // Temporarily disable focus handler to prevent reopening
+              this._suppressNextShow = true;
+              this.input.focus({ preventScroll: true });
+              setTimeout(() => {
+                this._suppressNextShow = false;
+              }, 100);
+            }, 0);
+          }
+
           break;
+        }
         case "today":
           this.setDate(new Date());
           if (this.config.autoClose) this.hide();
@@ -620,7 +721,9 @@ export default class DatePicker {
         ],
         footer = [this.todayBtn, this.clearBtn].filter(Boolean);
       if (e.key === "Escape") {
-        this.hide();
+        this.hide(); // close the panel
+        this._justClosedAt = Date.now(); // guard against immediate re‑open
+        this.input.focus({ preventScroll: true }); // return focus to <input>
         return;
       }
       if (e.key === "Tab" && e.shiftKey) {
@@ -635,7 +738,31 @@ export default class DatePicker {
         ae.dataset &&
         ae.dataset.action === "day"
       ) {
-        ae.click();
+        e.preventDefault(); // stop default tab behavior
+        ae.click(); // select the day (this will hide panel)
+
+        // Move focus to next focusable element
+        setTimeout(() => {
+          const SEL = [
+            "a[href]",
+            "area[href]",
+            "input:not([disabled]):not([tabindex='-1'])",
+            "select:not([disabled]):not([tabindex='-1'])",
+            "textarea:not([disabled]):not([tabindex='-1'])",
+            "button:not([disabled]):not([tabindex='-1'])",
+            "iframe",
+            "[tabindex]:not([tabindex='-1'])",
+            "[contenteditable='true']",
+          ].join(",");
+
+          const focusables = [...document.querySelectorAll(SEL)].filter(
+            (el) => el.offsetParent !== null
+          ); // only visible elements
+          const idx = focusables.indexOf(this.input);
+          if (idx !== -1 && idx < focusables.length - 1) {
+            focusables[idx + 1].focus();
+          }
+        }, 10);
         return;
       }
       const dayMove = {
@@ -644,8 +771,11 @@ export default class DatePicker {
         ArrowUp: -7,
         ArrowDown: 7,
       }[e.key];
+
       if (dayMove !== undefined && ae.dataset && ae.dataset.day) {
-        e.preventDefault();
+        // if (e.repeat) return; // optional
+        e.preventDefault(); // stop browser scrolling
+        e.stopImmediatePropagation(); // ⬅️ NEW: cancel native grid navigation
         this._moveFocus(dayMove);
         return;
       }
@@ -669,10 +799,31 @@ export default class DatePicker {
         ae.dataset.action === "day"
       ) {
         e.preventDefault();
-        ae.click();
+        ae.click(); // select the day
+
+        if (e.key === "Enter") {
+          setTimeout(() => {
+            this.hide(); // close panel
+            this._justClosedAt = Date.now(); // mark the close time
+            this.input.focus({ preventScroll: true });
+          }, 0);
+        }
+        return;
       }
     };
+    this._onInputClick = () => {
+      // If the panel is hidden and we didn’t *just* close it, open it
+      if (
+        this.panel.classList.contains("hidden") &&
+        Date.now() - this._justClosedAt > 80 // same guard you use for Esc
+      ) {
+        this.show();
+      }
+    };
+
+    this.input.addEventListener("click", this._onInputClick);
     this.input.addEventListener("focus", this._onInputFocus);
+    this.input.addEventListener("keydown", this._onInputKeyDown);
     document.addEventListener("click", this._onDocClick);
     document.addEventListener("keydown", this._onKeyDown);
     this.panel.addEventListener("click", this._onPanelClick);

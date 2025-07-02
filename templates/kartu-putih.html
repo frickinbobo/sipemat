@@ -1,81 +1,89 @@
 {% extends "index.html" %} {% block title %} - Kartu Putih{% endblock %} {%
 block content %}
 <div class="!w-full">
-  <h1 class="text-3xl font-bold mb-4">Kartu Putih</h1>
-  <!-- <p class="mt-2 text-gray-500">Welcome to your dashboard</p> -->
-  <label class="form-control w-full">
-    <div class="label">
-      <span class="label-text">NIM Mahasiswa</span>
+  <div class="card bg-base-100 w-full shadow-sm mt-2">
+    <div class="card-body">
+      <h1 class="text-3xl font-bold mb-4">Kartu Putih</h1>
+      <label class="form-control w-full">
+        <div class="label">
+          <span class="label-text">NIM Mahasiswa</span>
+        </div>
+        <div id="nim" class="mx-auto my-2"></div>
+      </label>
+      <label class="form-control w-full">
+        <div class="label">
+          <span class="label-text">Nama Mahasiswa</span>
+        </div>
+        <div id="nama" class="mx-auto my-2"></div>
+      </label>
+      <label class="form-control w-full">
+        <div class="label">
+          <span class="label-text">Program Studi Mahasiswa</span>
+        </div>
+        <div id="prodi" class="mx-auto my-2"></div>
+      </label>
+      <label class="form-control w-full">
+        <div class="label">
+          <span class="label-text">Pembimbing 1 Mahasiswa</span>
+        </div>
+        <div id="pembimbing-1" class="mx-auto my-2"></div>
+      </label>
+      <label class="form-control w-full">
+        <div class="label">
+          <span class="label-text">Pembimbing 2 Mahasiswa</span>
+        </div>
+        <div id="pembimbing-2" class="mx-auto my-2"></div>
+      </label>
+      <label class="form-control !w-full">
+        <div class="label">
+          <span class="label-text">Judul Proposal Mahasiswa</span>
+        </div>
+        <textarea
+          class="textarea textarea-bordered h-24 !w-full my-2"
+          placeholder="Masukkan Judul Proposal Mahasiswa"
+        ></textarea>
+      </label>
+      <label class="form-control !w-full">
+        <div class="label">
+          <span class="label-text">Tanggal Surat Tugas</span>
+        </div>
+        <input
+          id="tanggal-surat"
+          class="input input-bordered !w-full my-2"
+          type="text"
+        />
+      </label>
+      <label class="form-control !w-full">
+        <div class="label">
+          <span class="label-text">Nomor Surat Tugas</span>
+        </div>
+        <input
+          id="nomor-surat"
+          class="input input-bordered !w-full my-2"
+          type="number"
+          placeholder="Masukkan Nomor Surat Tugas"
+        />
+      </label>
+      <div class="card-actions justify-start flex-row-reverse">
+        <button class="btn btn-primary">Simpan</button>
+        <button class="btn btn-error">Reset</button>
+      </div>
     </div>
-    <div id="nim" class="mx-auto my-2"></div>
-  </label>
-  <label class="form-control w-full">
-    <div class="label">
-      <span class="label-text">Nama Mahasiswa</span>
-    </div>
-    <div id="nama" class="mx-auto my-2"></div>
-  </label>
-  <label class="form-control w-full">
-    <div class="label">
-      <span class="label-text">Program Studi Mahasiswa</span>
-    </div>
-    <div id="prodi" class="mx-auto my-2"></div>
-  </label>
-  <label class="form-control w-full">
-    <div class="label">
-      <span class="label-text">Pembimbing 1 Mahasiswa</span>
-    </div>
-    <div id="pembimbing-1" class="mx-auto my-2"></div>
-  </label>
-  <label class="form-control w-full">
-    <div class="label">
-      <span class="label-text">Pembimbing 2 Mahasiswa</span>
-    </div>
-    <div id="pembimbing-2" class="mx-auto my-2"></div>
-  </label>
-  <label class="form-control !w-full">
-    <div class="label">
-      <span class="label-text">Judul Proposal Mahasiswa</span>
-    </div>
-    <textarea
-      class="textarea textarea-bordered h-24 !w-full my-2"
-      placeholder="Masukkan Judul Proposal Mahasiswa"
-    ></textarea>
-  </label>
-  <label class="form-control !w-full">
-    <div class="label">
-      <span class="label-text">Tanggal Surat Tugas</span>
-    </div>
-    <input
-      id="datepicker"
-      class="input input-bordered !w-full my-2"
-      type="text"
-    />
-  </label>
-  <label class="form-control !w-full">
-    <div class="label">
-      <span class="label-text">Nomor Surat Tugas</span>
-    </div>
-    <input
-      id="datepicker"
-      class="input input-bordered !w-full my-2"
-      type="number"
-    />
-  </label>
-
+  </div>
   <div id="table" class="mx-auto my-4"></div>
 </div>
 {% endblock %} {% block scripts %}
 <script type="module">
   import DatePicker from "/static/js/datepicker/datepicker.js";
-  const dp = new DatePicker("#datepicker", {
+  window.tanggalSurat = new DatePicker("#tanggal-surat", {
     showResetButton: true,
-    resetBehavior: "clear",
+    resetBehavior: "today",
     defaultDate: new Date(),
     selectDefaultDate: true,
     dateFormat: "DD MMMM YYYY",
-    todayLabel: "Hari Ini",
+    todayLabel: "Hari Ini",
     locale: "id-ID",
+    placeholder: "Masukkan Tanggal Surat Tugas",
     onSelect(d, iso) {
       console.log("picked", iso);
     },
@@ -219,6 +227,7 @@ block content %}
 
 <script type="module">
   import DataTable from "/static/js/datatable/datatable.js";
+  const nomorSurat = document.getElementById("nomor-surat");
   const table = new DataTable({
     container: "#table",
     columns: [
@@ -240,12 +249,17 @@ block content %}
             : "-",
       },
       {
+        key: "tanggal",
+        label: "Tanggal Surat",
+        format: (_v, row) =>
+          row.tanggal ? formatDateToLongID(row.tanggal) : "-",
+      },
+      {
         key: "action",
         label: "Aksi",
         format: (_v, row) => {
           const container = document.createElement("div");
           container.className = "join";
-
           const btnEdit = document.createElement("button");
           btnEdit.className = "btn btn-xs btn-primary join-item";
           btnEdit.textContent = "Ubah";
@@ -257,6 +271,8 @@ block content %}
             pembimbing1Autocomplete.setRawValue(row.p1);
             pembimbing2Autocomplete.setRawValue(row.p2);
             document.querySelector("textarea").value = row.judul;
+            tanggalSurat.setDate(row.tanggal);
+            nomorSurat.value = row.nomor_surat;
           };
 
           const btnDelete = document.createElement("button");
