@@ -361,8 +361,12 @@ export default class DataTable {
         input.min = 1;
         input.max = totalPages;
         input.value = String(this._page);
+        // input.className =
+        // "input input-sm text-center h-8 !w-auto join-item !px-0";
         input.className =
-          "input input-sm text-center h-8 !w-auto join-item !px-0";
+          "input input-sm text-center h-8 !w-auto !px-0 join-item";
+        // input.className =
+        //   "input input-sm text-center h-8 !w-[2.5ch] !px-0 join-item";
 
         const commit = () => {
           let val = parseInt(input.value, 10);

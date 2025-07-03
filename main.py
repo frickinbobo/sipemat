@@ -101,7 +101,7 @@ def api_get_dosen(term: str, prodi: str) -> list[dict]:
     cur = conn.cursor()
     if prodi:
         cur.execute("""
-            SELECT nama, prodi
+            SELECT id_dosen, nama, prodi
             FROM dosen
             WHERE nama  LIKE ? AND
                   prodi LIKE ?
@@ -109,7 +109,7 @@ def api_get_dosen(term: str, prodi: str) -> list[dict]:
         """, (f"%{term}%", f"%{prodi}%"))
     else:
         cur.execute("""
-            SELECT nama, prodi
+            SELECT id_dosen, nama, prodi
             FROM dosen
             WHERE nama  LIKE ?
             LIMIT 20;
@@ -117,7 +117,7 @@ def api_get_dosen(term: str, prodi: str) -> list[dict]:
     rows = cur.fetchall()
     conn.close()
 
-    return [{"nama": r[0], "prodi": r[1]} for r in rows]
+    return [{"id_dosen": r[0], "nama": r[1], "prodi": r[2]} for r in rows]
 
 
 @app.get("/api/get/dosen")

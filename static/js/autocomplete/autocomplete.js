@@ -22,6 +22,8 @@ export function createAutocomplete({
   inputClasses = "input input-bordered",
   dropdownWidth = "100%",
   placeholder = "",
+  name = "",
+  required = false,
   loadingText = "Loading...",
   noDataText = "No data found",
   onSelect = null,
@@ -92,6 +94,8 @@ export function createAutocomplete({
   const input = Object.assign(document.createElement("input"), {
     type: "text",
     placeholder,
+    name,
+    required,
     className: `${inputClasses} !w-full`,
   });
   const drop = document.createElement("ul");
@@ -292,7 +296,13 @@ export function createAutocomplete({
   };
 
   return {
-    getValue: () => input.value,
+    getValue: (key) => {
+      if (key) {
+        if (sel && typeof sel === "object" && key in sel) return sel[key];
+        return null; // no match for that key
+      }
+      return input.value; // default: the input’s current string
+    },
     getSelectedItem: () => sel,
     setPlaceholder: (t) => {
       input.placeholder = t || "";
@@ -302,5 +312,13 @@ export function createAutocomplete({
     setUseCache,
     clearCache,
     focus: () => input.focus(),
+    setName: (name = "") => {
+      input.name = name;
+    },
+    getName: () => input.name,
+    setRequired: (b = true) => {
+      input.required = !!b;
+    },
+    isRequired: () => input.required,
   };
 }

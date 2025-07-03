@@ -75,6 +75,7 @@
  *   picker.setPlaceholder(text)  → Change or clear the input’s placeholder
  *   picker.setTodayLabel(text)  → Change "Today" button text at runtime
  *   picker.setDefaultDate(date, apply?) → Change stored default date
+ *   picker.setInputName(text)        → Change or clear the input’s name attribute
  *   picker.resetToDefault(apply?)      → Revert to the stored default date
  *   picker.destroy()            → Fully remove picker and cleanup
  *
@@ -109,6 +110,7 @@ export default class DatePicker {
     showTodayButton: true,
     todayLabel: "Today",
     placeholder: "",
+    inputName: "",
     showClearButton: false,
     locale: undefined,
     showResetButton: false,
@@ -127,6 +129,9 @@ export default class DatePicker {
     this._justClosedAt = 0;
     if (!this.input) throw new Error("DatePicker: input not found");
     this.config = { ...DatePicker.defaults, ...o };
+    if (this.config.inputName) {
+      this.input.setAttribute("name", this.config.inputName);
+    }
     this.input.placeholder = this.config.placeholder || "";
     ["onselect", "onfocus", "ondestroy", "oninit"].forEach((k) => {
       if (k in o) {
@@ -232,6 +237,16 @@ export default class DatePicker {
   setDefaultDate(d, apply = true) {
     this.config.defaultDate = d ? new Date(d) : null;
     if (apply) this.setDate(d);
+  }
+  setInputName(name = "") {
+    if (!name) {
+      this.input.removeAttribute("name");
+      this.config.inputName = "";
+    } else {
+      this.input.setAttribute("name", name);
+      this.config.inputName = name;
+    }
+    return this;
   }
   resetToDefault(apply = true) {
     if (apply) {

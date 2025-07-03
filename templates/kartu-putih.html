@@ -4,75 +4,113 @@ block content %}
   <div class="card bg-base-100 w-full shadow-sm mt-2">
     <div class="card-body">
       <h1 class="text-3xl font-bold mb-4">Kartu Putih</h1>
-      <label class="form-control w-full">
-        <div class="label">
-          <span class="label-text">NIM Mahasiswa</span>
+      <form action="#" id="form">
+        <input type="hidden" id="p1" name="p1" />
+        <input type="hidden" id="p2" name="p2" />
+        <label class="form-control w-full">
+          <div class="label">
+            <span class="label-text">NIM Mahasiswa</span>
+          </div>
+          <div id="nim" class="mx-auto my-2"></div>
+        </label>
+        <label class="form-control w-full">
+          <div class="label">
+            <span class="label-text">Nama Mahasiswa</span>
+          </div>
+          <div id="nama" class="mx-auto my-2"></div>
+        </label>
+        <label class="form-control w-full">
+          <div class="label">
+            <span class="label-text">Program Studi Mahasiswa</span>
+          </div>
+          <div id="prodi" class="mx-auto my-2"></div>
+        </label>
+        <label class="form-control w-full">
+          <div class="label">
+            <span class="label-text">Pembimbing 1 Mahasiswa</span>
+          </div>
+          <div id="pembimbing-1" class="mx-auto my-2"></div>
+        </label>
+        <label class="form-control w-full">
+          <div class="label">
+            <span class="label-text">Pembimbing 2 Mahasiswa</span>
+          </div>
+          <div id="pembimbing-2" class="mx-auto my-2"></div>
+        </label>
+        <label class="form-control !w-full">
+          <div class="label">
+            <span class="label-text">Judul Proposal Mahasiswa</span>
+          </div>
+          <textarea
+            rows="1"
+            data-autoresize
+            class="textarea textarea-bordered resize-none overflow-hidden !w-full my-2 !min-h-0 leading-[1.5rem]"
+            placeholder="Masukkan Judul Proposal Mahasiswa"
+            oninput="autoResize(this)"
+            required
+          ></textarea>
+        </label>
+        <label class="form-control !w-full">
+          <div class="label">
+            <span class="label-text">Nomor Surat Tugas</span>
+          </div>
+          <input
+            id="nomor-surat"
+            class="input input-bordered !w-full my-2"
+            name="nomor-surat"
+            type="number"
+            placeholder="Masukkan Nomor Surat Tugas"
+            required
+          />
+        </label>
+        <label class="form-control !w-full">
+          <div class="label">
+            <span class="label-text">Tanggal Surat Tugas</span>
+          </div>
+          <input
+            id="tanggal-surat"
+            class="input input-bordered !w-full my-2"
+            type="text"
+            required
+          />
+        </label>
+
+        <div class="card-actions justify-start flex-row-reverse">
+          <button class="btn btn-primary" id="button-submit" type="submit">
+            Simpan
+          </button>
+          <button class="btn btn-error" type="reset">Reset</button>
         </div>
-        <div id="nim" class="mx-auto my-2"></div>
-      </label>
-      <label class="form-control w-full">
-        <div class="label">
-          <span class="label-text">Nama Mahasiswa</span>
-        </div>
-        <div id="nama" class="mx-auto my-2"></div>
-      </label>
-      <label class="form-control w-full">
-        <div class="label">
-          <span class="label-text">Program Studi Mahasiswa</span>
-        </div>
-        <div id="prodi" class="mx-auto my-2"></div>
-      </label>
-      <label class="form-control w-full">
-        <div class="label">
-          <span class="label-text">Pembimbing 1 Mahasiswa</span>
-        </div>
-        <div id="pembimbing-1" class="mx-auto my-2"></div>
-      </label>
-      <label class="form-control w-full">
-        <div class="label">
-          <span class="label-text">Pembimbing 2 Mahasiswa</span>
-        </div>
-        <div id="pembimbing-2" class="mx-auto my-2"></div>
-      </label>
-      <label class="form-control !w-full">
-        <div class="label">
-          <span class="label-text">Judul Proposal Mahasiswa</span>
-        </div>
-        <textarea
-          class="textarea textarea-bordered h-24 !w-full my-2"
-          placeholder="Masukkan Judul Proposal Mahasiswa"
-        ></textarea>
-      </label>
-      <label class="form-control !w-full">
-        <div class="label">
-          <span class="label-text">Tanggal Surat Tugas</span>
-        </div>
-        <input
-          id="tanggal-surat"
-          class="input input-bordered !w-full my-2"
-          type="text"
-        />
-      </label>
-      <label class="form-control !w-full">
-        <div class="label">
-          <span class="label-text">Nomor Surat Tugas</span>
-        </div>
-        <input
-          id="nomor-surat"
-          class="input input-bordered !w-full my-2"
-          type="number"
-          placeholder="Masukkan Nomor Surat Tugas"
-        />
-      </label>
-      <div class="card-actions justify-start flex-row-reverse">
-        <button class="btn btn-primary">Simpan</button>
-        <button class="btn btn-error">Reset</button>
-      </div>
+      </form>
     </div>
   </div>
   <div id="table" class="mx-auto my-4"></div>
 </div>
 {% endblock %} {% block scripts %}
+<script>
+  function toObject(fd) {
+    return Object.fromEntries(fd.entries());
+  }
+  function autoResize(el) {
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }
+  function recalcAll() {
+    document.querySelectorAll("textarea[data-autoresize]").forEach(autoResize);
+  }
+  window.addEventListener("resize", recalcAll);
+  window.addEventListener("DOMContentLoaded", recalcAll);
+
+  const form = document.getElementById("form");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    let data = toObject(formData);
+    data["tanggal"] = document.getElementById("tanggal-surat").dataset.rawDate;
+    const buttonSubmit = document.getElementById("button-submit");
+    console.log(JSON.stringify(data));
+  });
+</script>
 <script type="module">
   import DatePicker from "/static/js/datepicker/datepicker.js";
   window.tanggalSurat = new DatePicker("#tanggal-surat", {
@@ -84,6 +122,7 @@ block content %}
     todayLabel: "Hari Ini",
     locale: "id-ID",
     placeholder: "Masukkan Tanggal Surat Tugas",
+    inputName: "tanggal",
     onSelect(d, iso) {
       console.log("picked", iso);
     },
@@ -113,6 +152,8 @@ block content %}
     minChars: 3,
     debounceMs: 300,
     placeholder: "Masukkan NIM Mahasiswa",
+    required: true,
+    name: "nim",
     fetchOptions: async (query) => {
       const res = await fetch(
         `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
@@ -139,6 +180,8 @@ block content %}
     // fuse: Fuse,
     // fuseOptions: { threshold: 0.3 },
     placeholder: "Masukkan Nama Mahasiswa",
+    required: true,
+    name: "nama",
     fetchOptions: async (query) => {
       const res = await fetch(
         `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
@@ -162,6 +205,8 @@ block content %}
     minChars: 3,
     debounceMs: 300,
     placeholder: "Masukkan Program Studi Mahasiswa",
+    required: true,
+    name: "prodi",
     // fetchOptions: async (query) => {
     //   const res = await fetch(
     //     `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
@@ -184,6 +229,8 @@ block content %}
     debounceMs: 300,
     useCache: false,
     placeholder: "Masukkan Pembimbing 1 Mahasiswa",
+    required: true,
+    name: "showp1",
     fetchOptions: async (query) => {
       let prodi = prodiAutocomplete.getValue();
       const res = await fetch(
@@ -194,6 +241,8 @@ block content %}
     },
     onSelect: (item) => {
       console.log("User picked:", item);
+      const p1 = document.getElementById("p1");
+      p1.value = item["id_dosen"];
       //   namaAutocomplete.setRawValue(item.nama);
       //   prodiAutocomplete.setValueBySearch(item.prodi);
     },
@@ -209,6 +258,8 @@ block content %}
     debounceMs: 300,
     useCache: false,
     placeholder: "Masukkan Pembimbing 2 Mahasiswa",
+    required: true,
+    name: "showp2",
     fetchOptions: async (query) => {
       let prodi = prodiAutocomplete.getValue();
       const res = await fetch(
@@ -219,6 +270,8 @@ block content %}
     },
     onSelect: (item) => {
       console.log("User picked:", item);
+      const p2 = document.getElementById("p2");
+      p2.value = item["id_dosen"];
       //   namaAutocomplete.setRawValue(item.nama);
       //   prodiAutocomplete.setValueBySearch(item.prodi);
     },

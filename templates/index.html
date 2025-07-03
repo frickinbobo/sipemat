@@ -28,6 +28,15 @@
       [data-theme="light"] .table-zebra tbody tr:nth-child(even) td {
         background-color: #f9fafb;
       }
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        margin: 0;
+        -webkit-appearance: none;
+      }
+
+      input[type="number"] {
+        -moz-appearance: textfield; /* Firefox */
+      }
     </style>
   </head>
   <body class="bg-base-200 min-h-screen">
