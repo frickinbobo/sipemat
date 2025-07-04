@@ -27,6 +27,7 @@ export function createAutocomplete({
   loadingText = "Loading...",
   noDataText = "No data found",
   onSelect = null,
+  onNoMatch = null,
 } = {}) {
   if (!container) throw new Error("container is required");
   if (!Array.isArray(options)) throw new Error("options must be an array");
@@ -41,6 +42,7 @@ export function createAutocomplete({
   let _fetch = fetchOptions,
     _useCache = useCache;
   let _onSelect = typeof onSelect === "function" ? onSelect : null;
+  let _onNoMatch = typeof onNoMatch === "function" ? onNoMatch : null;
   let _loading = loadingText,
     _nodata = noDataText;
   let _useFuzzy = useFuzzy,
@@ -212,6 +214,26 @@ export function createAutocomplete({
     input.setSelectionRange(input.value.length, input.value.length);
     _onSelect && _onSelect(sel);
   };
+  const matchesSel = () => {
+    if (!sel) return false;
+    const label = typeof sel === "object" ? valueOf(sel) : sel;
+    return input.value === label;
+  };
+  const closeList = () => {
+    // ① If the text no longer represents the selected item …
+    if (!matchesSel()) {
+      if (list.length) {
+        pick(list[0]); // auto‑select first match
+        return; // pick() already hid the list
+      }
+      // ② No matches at all → clear and reset selection
+      const typed = input.value; // save what the user typed
+      input.value = ""; // clear the field
+      sel = null; // reset selection
+      _onNoMatch && _onNoMatch(typed);
+    }
+    drop.classList.add("hidden");
+  };
 
   input.onkeydown = (e) => {
     if (["Backspace", "Delete"].includes(e.key)) skip = true;
@@ -236,12 +258,14 @@ export function createAutocomplete({
           recentTab = false;
         }, 10);
       } else {
-        drop.classList.add("hidden");
+        closeList();
         if (e.shiftKey) {
           e.preventDefault();
           focusPrev(input);
         }
       }
+    } else if (e.key === "Escape") {
+      closeList();
     }
   };
 
@@ -254,7 +278,7 @@ export function createAutocomplete({
     }
   };
   document.addEventListener("click", (e) => {
-    if (!wrap.contains(e.target)) drop.classList.add("hidden");
+    if (!wrap.contains(e.target)) closeList();
   });
 
   const setValueBySearch = async (term, exact = true) => {
@@ -283,10 +307,35 @@ export function createAutocomplete({
     }
     return res;
   };
-  const setRawValue = (v = "") => {
-    input.value = v;
+  // const setRawValue = (v = "") => {
+  //   input.value = v;
+  //   sel = null;
+  //   drop.classList.add("hidden");
+  // };
+  const clearInput = () => {
+    input.value = "";
+    input.removeAttribute("value"); // keep attribute in sync
     sel = null;
     drop.classList.add("hidden");
+  };
+  const setRawValue = (v = "", keepSel = true) => {
+    // If an option object is passed, treat it like a user pick
+    if (typeof v === "object" && v !== null) {
+      sel = v;
+      input.value = valueOf(v); // friendly label
+    } else {
+      input.value = v;
+      sel = keepSel ? v : null; // mark string as the current selection
+    }
+
+    // Sync attribute so HTML shows the value
+    input.setAttribute("value", input.value);
+
+    // Close the menu
+    drop.classList.add("hidden");
+
+    // Dispatch a genuine 'input' event so listeners + internal filter run
+    // input.dispatchEvent(new Event("input", { bubbles: true }));
   };
   const setUseCache = (b = true) => {
     _useCache = !!b;
@@ -307,7 +356,9 @@ export function createAutocomplete({
     setPlaceholder: (t) => {
       input.placeholder = t || "";
     },
+
     setValueBySearch,
+    clearInput,
     setRawValue,
     setUseCache,
     clearCache,

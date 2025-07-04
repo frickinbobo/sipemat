@@ -166,6 +166,10 @@ block content %}
       namaAutocomplete.setRawValue(item.nama);
       prodiAutocomplete.setValueBySearch(item.prodi);
     },
+    onNoMatch: (text) => {
+      namaAutocomplete.clearInput();
+      prodiAutocomplete.clearInput();
+    },
   });
 
   window.namaAutocomplete = createAutocomplete({
@@ -190,9 +194,13 @@ block content %}
       return await res.json();
     },
     onSelect: (item) => {
-      console.log("User picked:", item);
       nimAutocomplete.setRawValue(item.nim);
       prodiAutocomplete.setValueBySearch(item.prodi);
+    },
+    onNoMatch: (text) => {
+      console.log(text);
+      nimAutocomplete.clearInput();
+      prodiAutocomplete.clearInput();
     },
   });
 
@@ -341,6 +349,17 @@ block content %}
         },
       },
     ],
+    persistSelection: true, // remember!
+    rowIdKey: "id_kartu", // unique field
+    storageKey: "kartu-putih-table-selections",
+    onPrint: (sel, inst) => {
+      console.log("About to print", sel.length, "rows:", sel);
+      console.log(inst);
+      // your custom print logic here
+    },
+    onSelect: (rows) => {
+      console.log("Selection changed:", rows);
+    },
     dataLoader: () => fetch("/api/get/kartu-putih/").then((res) => res.json()),
   });
 </script>

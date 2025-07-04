@@ -15,6 +15,14 @@ export default class DataTable {
       rowCountFormatter: (s, e, t) => `Showing ${s}–${e} of ${t}`,
       fieldFormatters: {},
       autoLoad: true,
+      onPrint: null, // ← NEW
+      onSelect: null, // ← NEW
+      /** enable localStorage persistence */
+      persistSelection: false, // true = remember across reloads
+      /** the row field that is unique (e.g. "id") */
+      rowIdKey: "id",
+      /** localStorage key to use */
+      storageKey: "datatable-selected", // change per table if needed
       ...o,
     };
 
@@ -29,6 +37,23 @@ export default class DataTable {
     this._search = "";
     this._sortKey = null;
     this._sortAsc = true;
+    this._selectedRows = new Set();
+    // if (this.opts.persistSelection && this.opts.storageKey) {
+    //   try {
+    //     const savedIds = JSON.parse(
+    //       localStorage.getItem(this.opts.storageKey) || "[]"
+    //     );
+    //     if (savedIds.length && this.opts.rowIdKey) {
+    //       savedIds.forEach((id) => {
+    //         const row = this._data.find((r) => r[this.opts.rowIdKey] === id);
+    //         if (row) this._selectedRows.add(row);
+    //       });
+    //     }
+    //   } catch {
+    //     /* ignore malformed JSON */
+    //   }
+    // }
+    // this._updateActionButtons();
 
     this._renderSkeleton();
     this._bindEvents();
@@ -39,11 +64,48 @@ export default class DataTable {
       this.refresh();
     }
   }
+  /** ------------------------------------------------------------------
+   * Return selected rows with optional filtering / projection.
+   * @param {Function|Object|Array|null} filter —
+   *   • function(row) → boolean : predicate filter
+   *   • object {field:value,…}  : keep rows matching all pairs
+   *   • array  [field,…]        : project to those fields only
+   *   • null / undefined        : full row objects
+   * ------------------------------------------------------------------ */
+  getSelectedRows(filter = null) {
+    let rows = [...this._selectedRows]; // clone as array
+
+    if (!filter) return rows;
+
+    // 1) predicate function
+    if (typeof filter === "function") {
+      return rows.filter(filter);
+    }
+
+    // 2) projection list → array of objects with those keys only
+    if (Array.isArray(filter)) {
+      return rows.map((r) => {
+        const o = {};
+        filter.forEach((k) => (o[k] = r[k]));
+        return o;
+      });
+    }
+
+    // 3) match‑object {key:value}
+    if (typeof filter === "object") {
+      return rows.filter((r) =>
+        Object.entries(filter).every(([k, v]) => r[k] === v)
+      );
+    }
+
+    return rows; // fallback
+  }
 
   setData(r, reset = true) {
     if (!Array.isArray(r)) throw new Error("setData expects array");
     this._dataOriginal = structuredClone(r);
     this._data = structuredClone(r);
+    this._restoreSelectionFromStorage();
     if (reset) this._page = 1;
     return this.refresh();
   }
@@ -103,7 +165,20 @@ export default class DataTable {
     if (refresh) return this.refresh();
     return this;
   }
-
+  setPrintHandler(fn) {
+    this.opts.onPrint = typeof fn === "function" ? fn : null;
+    return this;
+  }
+  setSelectHandler(fn) {
+    // NEW
+    this.opts.onSelect = typeof fn === "function" ? fn : null;
+    return this;
+  }
+  clearPersistedSelection() {
+    if (this.opts.storageKey) {
+      localStorage.removeItem(this.opts.storageKey);
+    }
+  }
   refresh() {
     const f = this._filter(),
       s = this._sort(f),
@@ -119,27 +194,92 @@ export default class DataTable {
       f.length
     );
     this.resetSortBtn.classList.toggle("hidden", !this._sortKey);
+    this._updateActionButtons();
+    this._updateHeaderCheckbox();
     return this;
   }
 
   destroy() {
     this.container.innerHTML = "";
   }
+  _persistSelection() {
+    if (
+      !this.opts.persistSelection ||
+      !this.opts.storageKey ||
+      !this.opts.rowIdKey
+    )
+      return;
+    const ids = [...this._selectedRows].map((r) => r[this.opts.rowIdKey]);
+    localStorage.setItem(this.opts.storageKey, JSON.stringify(ids));
+  }
 
+  _updateActionButtons() {
+    // Print button is visible only when something is selected
+    this.printBtn.classList.toggle("!hidden", this._selectedRows.size === 0);
+  }
+
+  _fireSelectCallback() {
+    // NEW
+    if (typeof this.opts.onSelect === "function") {
+      this.opts.onSelect(this.getSelectedRows(), this);
+    }
+    this._persistSelection();
+  }
+
+  _updateHeaderCheckbox() {
+    if (!this.headerCheckbox) return;
+    const filtered = this._filter(); // rows currently eligible for selection
+    const total = filtered.length;
+    const selected = filtered.filter((r) => this._selectedRows.has(r)).length;
+    this.headerCheckbox.indeterminate = selected > 0 && selected < total;
+    this.headerCheckbox.checked = total > 0 && selected === total;
+  }
+  _restoreSelectionFromStorage() {
+    if (
+      !this.opts.persistSelection ||
+      !this.opts.storageKey ||
+      !this.opts.rowIdKey
+    )
+      return;
+
+    const saved = JSON.parse(
+      localStorage.getItem(this.opts.storageKey) || "[]"
+    );
+    this._selectedRows.clear();
+
+    if (Array.isArray(saved) && saved.length) {
+      saved.forEach((id) => {
+        const row = this._data.find((r) => r[this.opts.rowIdKey] === id);
+        if (row) this._selectedRows.add(row);
+      });
+    }
+    this._updateActionButtons();
+    this._updateHeaderCheckbox();
+  }
   _renderSkeleton() {
     this.searchInput = document.createElement("input");
     this.searchInput.placeholder = this.opts.searchPlaceholder;
-    this.searchInput.className = "input input-bordered w-full sm:max-w-xs";
+    this.searchInput.className =
+      "input input-bordered input-sm w-full sm:w-auto join-item";
 
     this.resetSortBtn = document.createElement("button");
-    this.resetSortBtn.textContent = "Reset Sort";
-    this.resetSortBtn.className = "btn btn-sm btn-outline ml-2 hidden";
+    this.resetSortBtn.innerHTML = `
+  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0113.31-4.735M4.5 12H3m1.5 0a7.5 7.5 0 0013.31 4.735M21 12h-1.5" />
+</svg>
+`;
+    this.resetSortBtn.className = "btn btn-sm btn-outline join-item hidden";
     this.resetSortBtn.onclick = () => {
+      this._selectedRows.clear();
+      this.printBtn.classList.add("!hidden");
       this._sortKey = null;
       this._sortAsc = true;
       this._data = structuredClone(this._dataOriginal);
       this._page = 1;
+      this._updateActionButtons();
       this.refresh();
+      this._updateHeaderCheckbox();
+      this._fireSelectCallback();
     };
 
     this.pageSizeSelect = document.createElement("select");
@@ -151,12 +291,30 @@ export default class DataTable {
     this.rowCountDisplay = document.createElement("div");
     this.rowCountDisplay.className = "text-sm text-gray-500 self-center";
 
+    // const ctr = document.createElement("div");
+    // ctr.className = "flex flex-wrap items-center gap-2 justify-between mb-4";
+    // Join group for search + reset
+    const searchGroup = document.createElement("div");
+    searchGroup.className = "join";
+    searchGroup.append(this.searchInput, this.resetSortBtn);
+
+    this.printBtn = document.createElement("button");
+    this.printBtn.className = "btn btn-sm btn-outline !hidden";
+    this.printBtn.innerHTML = `
+  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v7H6v-7z" />
+  </svg>`;
+    this.printBtn.onclick = () => {
+      if (typeof this.opts.onPrint === "function") {
+        // pass selected rows and the instance itself
+        this.opts.onPrint(this.getSelectedRows(), this);
+      }
+    };
+    // Control bar
     const ctr = document.createElement("div");
-    ctr.className = "flex flex-wrap items-center gap-2 justify-between mb-4";
-    const left = document.createElement("div");
-    left.className = "flex gap-2";
-    left.append(this.searchInput, this.resetSortBtn);
-    ctr.append(left);
+    ctr.className = "flex flex-wrap items-center gap-2 justify-end mb-4";
+    ctr.append(this.printBtn, searchGroup);
 
     const tableWrapper = document.createElement("div");
     tableWrapper.className = "overflow-x-auto w-full mb-4";
@@ -250,6 +408,24 @@ export default class DataTable {
   _renderHeader() {
     this.thead.innerHTML = "";
     const tr = document.createElement("tr");
+    const thSelect = document.createElement("th");
+    this.headerCheckbox = document.createElement("input");
+    this.headerCheckbox.type = "checkbox";
+    this.headerCheckbox.className = "checkbox checkbox-sm";
+    this.headerCheckbox.onchange = () => {
+      const filtered = this._filter(); // all rows that pass search
+      if (this.headerCheckbox.checked) {
+        filtered.forEach((r) => this._selectedRows.add(r));
+      } else {
+        filtered.forEach((r) => this._selectedRows.delete(r));
+      }
+      this._updateActionButtons();
+      this._updateHeaderCheckbox(); // keep indeterminate state correct
+      this._fireSelectCallback();
+      this._renderBody(this._paginate(this._sort(filtered)).paged); // refresh page rows only
+    };
+    thSelect.append(this.headerCheckbox);
+    tr.append(thSelect);
     this.columns.forEach((c) => {
       const th = document.createElement("th");
       th.textContent = c.label ?? c.key;
@@ -288,6 +464,23 @@ export default class DataTable {
     // Render rows
     rows.forEach((row) => {
       const tr = document.createElement("tr");
+
+      // ─── selection checkbox ─────────────────────────
+      const selTd = document.createElement("td");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.className = "checkbox checkbox-sm";
+      cb.checked = this._selectedRows.has(row);
+      cb.onchange = () => {
+        cb.checked
+          ? this._selectedRows.add(row)
+          : this._selectedRows.delete(row);
+        this._updateActionButtons();
+        this._updateHeaderCheckbox();
+        this._fireSelectCallback();
+      };
+      selTd.append(cb);
+      tr.append(selTd);
 
       this.columns.forEach((col) => {
         const td = document.createElement("td");
