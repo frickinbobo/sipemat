@@ -28,6 +28,9 @@ export function createAutocomplete({
   noDataText = "No data found",
   onSelect = null,
   onNoMatch = null,
+  showClearButton = false,
+  defaultValue = null, // ← NEW
+  clearValue = null, // ← NEW (default: hidden)
 } = {}) {
   if (!container) throw new Error("container is required");
   if (!Array.isArray(options)) throw new Error("options must be an array");
@@ -49,6 +52,9 @@ export function createAutocomplete({
     Fuse = fuse || window.Fuse,
     _fuseOpts = fuseOptions,
     fuseInst = null;
+  let _clearValue = clearValue; // value used by the clear button
+  let _defaultValue = defaultValue;
+  let _showClearBtn = showClearButton;
 
   const labelOf = (o) =>
     typeof o === "string"
@@ -104,7 +110,19 @@ export function createAutocomplete({
   drop.className =
     "absolute left-0 z-10 mt-1 bg-base-100 shadow-lg rounded-box hidden max-h-60 overflow-y-auto";
   drop.style.width = dropdownWidth;
-  wrap.append(input, drop);
+  const clearBtn = document.createElement("button");
+  clearBtn.type = "button";
+  clearBtn.innerHTML = "✕";
+  clearBtn.className =
+    "absolute right-2 top-1/2 -translate-y-1/2 text-base-content opacity-60 hover:opacity-100 px-2 cursor-pointer";
+  clearBtn.tabIndex = -1;
+  clearBtn.classList.add("hidden");
+  clearBtn.onclick = () => {
+    clearInput();
+    input.focus();
+  };
+
+  wrap.append(input, clearBtn, drop);
   container.append(wrap);
 
   const items = [];
@@ -127,7 +145,20 @@ export function createAutocomplete({
     sel = null,
     timer = null,
     recentTab = false;
-
+  let dirty = false;
+  const updateClear = () => {
+    if (!_showClearBtn) {
+      clearBtn.classList.add("hidden");
+      return;
+    }
+    input.value
+      ? clearBtn.classList.remove("hidden")
+      : clearBtn.classList.add("hidden");
+    if (_defaultValue !== null && _defaultValue !== undefined) {
+      // do *not* fire onSelect at startup → use setRawValue
+      setRawValue(_defaultValue);
+    }
+  };
   const msg = (html) => {
     drop.innerHTML = `<li class='p-2 text-center opacity-70'>${html}</li>`;
     drop.classList.remove("hidden");
@@ -208,10 +239,15 @@ export function createAutocomplete({
   };
 
   const pick = (n) => {
+    dirty = false;
     sel = n.o;
     input.value = valueOf(sel);
     drop.classList.add("hidden");
     input.setSelectionRange(input.value.length, input.value.length);
+    updateClear();
+    input.setAttribute("value", input.value); // keep attribute in sync
+    list.length = 0; // throw away stale suggestions
+    idx = -1;
     _onSelect && _onSelect(sel);
   };
   const matchesSel = () => {
@@ -223,14 +259,17 @@ export function createAutocomplete({
     // ① If the text no longer represents the selected item …
     if (!matchesSel()) {
       if (list.length) {
-        pick(list[0]); // auto‑select first match
+        pick(list[0]); // safe autopick
         return; // pick() already hid the list
       }
-      // ② No matches at all → clear and reset selection
-      const typed = input.value; // save what the user typed
-      input.value = ""; // clear the field
-      sel = null; // reset selection
-      _onNoMatch && _onNoMatch(typed);
+      // ② No matches at all – but only if the field was *modified* by the user
+      if (dirty) {
+        const typed = input.value; // save what the user typed
+        input.value = ""; // clear the field
+        sel = null; // reset selection
+        dirty = false; // reset dirty flag
+        _onNoMatch && _onNoMatch(typed);
+      }
     }
     drop.classList.add("hidden");
   };
@@ -269,7 +308,12 @@ export function createAutocomplete({
     }
   };
 
-  input.oninput = (e) => onInput(e.target.value);
+  input.oninput = (e) => {
+    // ← keep the line
+    dirty = true; // ← NEW: user has begun to edit
+    onInput(e.target.value); // ← existing call
+    updateClear(); // ← NEW
+  };
   input.onfocus = () => {
     if (!_fetch) {
       list = items.slice();
@@ -313,10 +357,21 @@ export function createAutocomplete({
   //   drop.classList.add("hidden");
   // };
   const clearInput = () => {
-    input.value = "";
-    input.removeAttribute("value"); // keep attribute in sync
-    sel = null;
+    // If a special clear‑value is configured, use it; else blank the field
+    if (_clearValue !== null && _clearValue !== undefined) {
+      // Accept string or object
+      sel = _clearValue;
+      input.value =
+        typeof _clearValue === "object" ? valueOf(_clearValue) : _clearValue;
+      input.setAttribute("value", input.value);
+    } else {
+      input.value = "";
+      input.removeAttribute("value");
+      sel = null;
+    }
+    dirty = false; // reset typing flag
     drop.classList.add("hidden");
+    updateClear(); // refresh ❌ visibility
   };
   const setRawValue = (v = "", keepSel = true) => {
     // If an option object is passed, treat it like a user pick
@@ -330,10 +385,16 @@ export function createAutocomplete({
 
     // Sync attribute so HTML shows the value
     input.setAttribute("value", input.value);
+    updateClear();
+    list.length = 0; // clear stale results
+    idx = -1;
+    dirty = false;
 
     // Close the menu
     drop.classList.add("hidden");
-
+    list = []; // empty the suggestion list
+    idx = -1; // clear highlighted index
+    skip = true;
     // Dispatch a genuine 'input' event so listeners + internal filter run
     // input.dispatchEvent(new Event("input", { bubbles: true }));
   };
@@ -343,7 +404,7 @@ export function createAutocomplete({
   const clearCache = () => {
     cache.clear();
   };
-
+  updateClear();
   return {
     getValue: (key) => {
       if (key) {
@@ -371,5 +432,21 @@ export function createAutocomplete({
       input.required = !!b;
     },
     isRequired: () => input.required,
+    setShowClearButton: (b = true) => {
+      _showClearBtn = !!b;
+      updateClear();
+    },
+    isShowClearButton: () => _showClearBtn,
+    /* —— Defaults & clear‑value —— */
+    setDefaultValue: (v) => {
+      _defaultValue = v;
+      setRawValue(v);
+    },
+    getDefaultValue: () => _defaultValue,
+
+    setClearValue: (v) => {
+      _clearValue = v;
+    },
+    getClearValue: () => _clearValue,
   };
 }

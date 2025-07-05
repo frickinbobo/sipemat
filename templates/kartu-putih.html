@@ -153,6 +153,8 @@ block content %}
     debounceMs: 300,
     placeholder: "Masukkan NIM Mahasiswa",
     required: true,
+    showClearButton: true,
+    clearValue: { nim: "", nama: "— Pilih Mahasiswa —", prodi: "" },
     name: "nim",
     fetchOptions: async (query) => {
       const res = await fetch(
@@ -185,6 +187,7 @@ block content %}
     // fuseOptions: { threshold: 0.3 },
     placeholder: "Masukkan Nama Mahasiswa",
     required: true,
+    showClearButton: true,
     name: "nama",
     fetchOptions: async (query) => {
       const res = await fetch(
@@ -214,6 +217,7 @@ block content %}
     debounceMs: 300,
     placeholder: "Masukkan Program Studi Mahasiswa",
     required: true,
+    showClearButton: true,
     name: "prodi",
     // fetchOptions: async (query) => {
     //   const res = await fetch(
@@ -238,6 +242,7 @@ block content %}
     useCache: false,
     placeholder: "Masukkan Pembimbing 1 Mahasiswa",
     required: true,
+    showClearButton: true,
     name: "showp1",
     fetchOptions: async (query) => {
       let prodi = prodiAutocomplete.getValue();
@@ -267,6 +272,7 @@ block content %}
     useCache: false,
     placeholder: "Masukkan Pembimbing 2 Mahasiswa",
     required: true,
+    showClearButton: true,
     name: "showp2",
     fetchOptions: async (query) => {
       let prodi = prodiAutocomplete.getValue();
