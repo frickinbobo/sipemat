@@ -152,9 +152,11 @@ block content %}
     minChars: 3,
     debounceMs: 300,
     placeholder: "Masukkan NIM Mahasiswa",
+    showInfoMessage: true,
+    infoMessage: "Pilih Mahasiswa",
     required: true,
     showClearButton: true,
-    clearValue: { nim: "", nama: "— Pilih Mahasiswa —", prodi: "" },
+    clearValue: { nim: "", nama: "", prodi: "" },
     name: "nim",
     fetchOptions: async (query) => {
       const res = await fetch(
@@ -164,7 +166,6 @@ block content %}
       return await res.json();
     },
     onSelect: (item) => {
-      console.log("User picked:", item);
       namaAutocomplete.setRawValue(item.nama);
       prodiAutocomplete.setValueBySearch(item.prodi);
     },
@@ -186,6 +187,9 @@ block content %}
     // fuse: Fuse,
     // fuseOptions: { threshold: 0.3 },
     placeholder: "Masukkan Nama Mahasiswa",
+    clearValue: { nim: "", nama: "", prodi: "" },
+    showInfoMessage: true,
+    infoMessage: "Pilih Mahasiswa",
     required: true,
     showClearButton: true,
     name: "nama",
@@ -201,7 +205,6 @@ block content %}
       prodiAutocomplete.setValueBySearch(item.prodi);
     },
     onNoMatch: (text) => {
-      console.log(text);
       nimAutocomplete.clearInput();
       prodiAutocomplete.clearInput();
     },
@@ -213,19 +216,15 @@ block content %}
     displayFields: ["namaProdi"],
     searchFields: ["namaProdi"],
     selectedFields: ["namaProdi"],
+    showInfoMessage: true,
+    infoMessage: "Pilih Prodi",
     minChars: 3,
     debounceMs: 300,
     placeholder: "Masukkan Program Studi Mahasiswa",
+    clearValue: { namaProdi: "" },
     required: true,
     showClearButton: true,
     name: "prodi",
-    // fetchOptions: async (query) => {
-    //   const res = await fetch(
-    //     `/api/get/mahasiswa?q=${encodeURIComponent(query)}`
-    //   );
-    //   if (!res.ok) return []; // basic error handling
-    //   return await res.json(); // must resolve to array
-    // },
     onSelect: (item) => {
       console.log("User picked:", item);
     },

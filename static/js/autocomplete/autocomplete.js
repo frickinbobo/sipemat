@@ -31,6 +31,9 @@ export function createAutocomplete({
   showClearButton = false,
   defaultValue = null, // ← NEW
   clearValue = null, // ← NEW (default: hidden)
+  infoMessage = null,
+  noMatchMessage = "No data is found.", // ← NEW
+  showInfoMessage = false,
 } = {}) {
   if (!container) throw new Error("container is required");
   if (!Array.isArray(options)) throw new Error("options must be an array");
@@ -55,6 +58,11 @@ export function createAutocomplete({
   let _clearValue = clearValue; // value used by the clear button
   let _defaultValue = defaultValue;
   let _showClearBtn = showClearButton;
+  let _infoMessage = infoMessage || null;
+  let _showInfoMessage = showInfoMessage || false;
+  let _noMatchMessage = noMatchMessage || "No data is found.";
+  let escapePressed = false;
+  let clickedOutside = false;
 
   const labelOf = (o) =>
     typeof o === "string"
@@ -95,6 +103,10 @@ export function createAutocomplete({
       i = a.indexOf(el);
     if (i > 0) a[i - 1].focus();
   };
+  const isDisabled = (item) => !!item.disabled;
+  const firstEnabledIdx = (arr) => {
+    arr.findIndex((v) => !isDisabled(v));
+  };
 
   const wrap = Object.assign(document.createElement("div"), {
     className: wrapperClasses,
@@ -117,10 +129,16 @@ export function createAutocomplete({
     "absolute right-2 top-1/2 -translate-y-1/2 text-base-content opacity-60 hover:opacity-100 px-2 cursor-pointer";
   clearBtn.tabIndex = -1;
   clearBtn.classList.add("hidden");
-  clearBtn.onclick = () => {
-    clearInput();
+  clearBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    input.value = "";
+    skip = true; // ← must be set BEFORE filter()
+    setRawValue(_clearValue || "");
     input.focus();
-  };
+    filter(""); // triggers render() with dropdown, but no prefill
+  });
 
   wrap.append(input, clearBtn, drop);
   container.append(wrap);
@@ -174,39 +192,110 @@ export function createAutocomplete({
       nodata();
       return;
     }
+
+    // Find the first selectable (non-disabled, non-info) item
+    const firstSelectableIdx = list.findIndex((v) => !v.disabled && !v.infoRow);
+    if (idx === -1 && firstSelectableIdx !== -1) {
+      idx = firstSelectableIdx;
+    }
+
     list.forEach((v, i) => {
       const li = document.createElement("li");
+
+      if (v.infoRow) {
+        if (!v.lab || typeof v.lab !== "string" || v.lab.trim() === "") return;
+        li.textContent = v.lab;
+        li.className =
+          "px-4 py-2 text-sm text-base-content opacity-60 cursor-default select-none";
+        drop.appendChild(li);
+        return;
+      }
+
+      if (!v.lab || typeof v.lab !== "string" || v.lab.trim() === "") return;
+
       li.textContent = v.lab;
-      li.className = `p-2 cursor-pointer ${
-        i === idx
-          ? "bg-primary text-primary-content hover:bg-primary"
-          : "hover:bg-base-200"
-      }`;
-      li.onmousedown = (e) => {
-        e.preventDefault();
-        pick(v);
-      };
-      drop.append(li);
+
+      if (v.disabled) {
+        li.className = "p-2 opacity-50 cursor-not-allowed select-none";
+      } else {
+        li.className = `p-2 cursor-pointer ${
+          i === idx
+            ? "bg-primary text-primary-content hover:bg-primary"
+            : "hover:bg-base-200"
+        }`;
+        li.onmousedown = (e) => {
+          e.preventDefault();
+          pick(v);
+        };
+      }
+
+      drop.appendChild(li);
     });
+
     drop.classList.remove("hidden");
     if (idx >= 0 && drop.children[idx])
       drop.children[idx].scrollIntoView({ block: "nearest" });
   };
 
   const filter = (q) => {
+    escapePressed = false;
     const t = q.toLowerCase();
+
     list =
       _useFuzzy && fuseInst
         ? fuseInst.search(t).map((r) => ({ o: r.item, lab: labelOf(r.item) }))
         : items.filter(({ s }) => s.includes(t));
-    idx = list.length ? 0 : -1;
+
+    // Remove bad/empty items
+    list = list.filter(
+      (v) => v && typeof v.lab === "string" && v.lab.trim() !== ""
+    );
+
+    const noMatches = t && list.length === 0;
+
+    // Prepend clear row if configured
+    if (_clearValue !== null && _clearValue !== undefined) {
+      list.unshift({
+        o: _clearValue,
+        lab: labelOf(_clearValue),
+        disabled: true,
+        _clearRow: true,
+      });
+    }
+
+    // Prepend info row if configured
+    if (_showInfoMessage) {
+      list.unshift({
+        lab: noMatches ? _noMatchMessage : _infoMessage,
+        disabled: true,
+        infoRow: true,
+      });
+    }
+
+    // Final clean pass
+    list = list.filter(
+      (v) => v && typeof v.lab === "string" && v.lab.trim() !== ""
+    );
+
     render();
-    if (!skip && t && list.length && list[0].lab.toLowerCase().startsWith(t)) {
+    const firstSelectableIdx = list.findIndex((v) => !v.disabled && !v.infoRow);
+    if (firstSelectableIdx !== -1) {
+      idx = firstSelectableIdx;
+    }
+    if (
+      !skip &&
+      !escapePressed &&
+      t &&
+      list.length &&
+      list[0].lab.toLowerCase().startsWith(t)
+    ) {
       input.value = list[0].lab;
       input.setSelectionRange(t.length, list[0].lab.length);
     }
+
     skip = false;
   };
+
   const load = (v) => {
     if (!_fetch) return filter(v);
     const key = v.toLowerCase();
@@ -256,35 +345,57 @@ export function createAutocomplete({
     return input.value === label;
   };
   const closeList = () => {
-    // ① If the text no longer represents the selected item …
+    if (escapePressed) {
+      escapePressed = false;
+      skip = true;
+      sel = null;
+      input.value = "";
+      updateClear();
+      drop.classList.add("hidden");
+      return;
+    }
+
     if (!matchesSel()) {
-      if (list.length) {
-        pick(list[0]); // safe autopick
-        return; // pick() already hid the list
+      if (!clickedOutside) {
+        const firstOK = list.find((v) => !isDisabled(v));
+        if (firstOK) {
+          pick(firstOK);
+          return;
+        }
       }
-      // ② No matches at all – but only if the field was *modified* by the user
+
       if (dirty) {
-        const typed = input.value; // save what the user typed
-        input.value = ""; // clear the field
-        sel = null; // reset selection
-        dirty = false; // reset dirty flag
+        const typed = input.value;
+        input.value = "";
+        sel = null;
+        dirty = false;
         _onNoMatch && _onNoMatch(typed);
       }
     }
+
     drop.classList.add("hidden");
   };
 
   input.onkeydown = (e) => {
     if (["Backspace", "Delete"].includes(e.key)) skip = true;
+
     if (e.key === "ArrowDown" && list.length) {
       e.preventDefault();
-      idx = (idx + 1) % list.length;
+      do {
+        idx = (idx + 1) % list.length;
+      } while (isDisabled(list[idx]));
       render();
     } else if (e.key === "ArrowUp" && list.length) {
       e.preventDefault();
-      idx = (idx - 1 + list.length) % list.length;
+      do {
+        idx = (idx - 1 + list.length) % list.length;
+      } while (isDisabled(list[idx]));
       render();
     } else if (e.key === "Enter" && idx !== -1) {
+      if (escapePressed) {
+        escapePressed = false; // reset it so it doesn’t interfere next time
+        return;
+      }
       e.preventDefault();
       pick(list[idx]);
     } else if (e.key === "Tab") {
@@ -304,7 +415,11 @@ export function createAutocomplete({
         }
       }
     } else if (e.key === "Escape") {
-      closeList();
+      escapePressed = true;
+      skip = true; // Prevent auto-fill behavior
+      input.value = ""; // Clear the visible input field
+      closeList(); // ← close dropdown
+      if (_onNoMatch) _onNoMatch(); // ← Trigger the onNoMatch callback
     }
   };
 
@@ -316,13 +431,16 @@ export function createAutocomplete({
   };
   input.onfocus = () => {
     if (!_fetch) {
-      list = items.slice();
-      idx = list.length ? 0 : -1; // Auto-highlight first option for static data
-      render();
+      filter(input.value); // ← this runs the logic that includes _clearValue
     }
   };
   document.addEventListener("click", (e) => {
-    if (!wrap.contains(e.target)) closeList();
+    const isOutside = !wrap.contains(e.target);
+    if (isOutside) {
+      clickedOutside = true;
+      closeList();
+      clickedOutside = false;
+    }
   });
 
   const setValueBySearch = async (term, exact = true) => {
@@ -448,5 +566,8 @@ export function createAutocomplete({
       _clearValue = v;
     },
     getClearValue: () => _clearValue,
+    setNoMatchMessage(msg) {
+      _noMatchMessage = msg;
+    },
   };
 }
