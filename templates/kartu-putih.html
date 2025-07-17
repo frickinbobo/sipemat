@@ -157,6 +157,7 @@ block content %}
     required: true,
     showClearButton: true,
     clearValue: { nim: "", nama: "", prodi: "" },
+    autocompleteAttr: "off",
     name: "nim",
     fetchOptions: async (query) => {
       const res = await fetch(
@@ -192,6 +193,7 @@ block content %}
     infoMessage: "Pilih Mahasiswa",
     required: true,
     showClearButton: true,
+    autocompleteAttr: "off",
     name: "nama",
     fetchOptions: async (query) => {
       const res = await fetch(
@@ -224,6 +226,7 @@ block content %}
     clearValue: { namaProdi: "" },
     required: true,
     showClearButton: true,
+    autocompleteAttr: "off",
     name: "prodi",
     onSelect: (item) => {
       console.log("User picked:", item);
@@ -242,6 +245,7 @@ block content %}
     placeholder: "Masukkan Pembimbing 1 Mahasiswa",
     required: true,
     showClearButton: true,
+    autocompleteAttr: "off",
     name: "showp1",
     fetchOptions: async (query) => {
       let prodi = prodiAutocomplete.getValue();
@@ -272,6 +276,7 @@ block content %}
     placeholder: "Masukkan Pembimbing 2 Mahasiswa",
     required: true,
     showClearButton: true,
+    autocompleteAttr: "off",
     name: "showp2",
     fetchOptions: async (query) => {
       let prodi = prodiAutocomplete.getValue();

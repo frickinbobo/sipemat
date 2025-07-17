@@ -34,6 +34,7 @@ export function createAutocomplete({
   infoMessage = null,
   noMatchMessage = "No data is found.", // ← NEW
   showInfoMessage = false,
+  autocompleteAttr = "off",
 } = {}) {
   if (!container) throw new Error("container is required");
   if (!Array.isArray(options)) throw new Error("options must be an array");
@@ -117,6 +118,7 @@ export function createAutocomplete({
     name,
     required,
     className: `${inputClasses} !w-full`,
+    autocomplete: autocompleteAttr,
   });
   const drop = document.createElement("ul");
   drop.className =
@@ -569,5 +571,9 @@ export function createAutocomplete({
     setNoMatchMessage(msg) {
       _noMatchMessage = msg;
     },
+    setAutocomplete: (val = "off") => {
+      input.setAttribute("autocomplete", val);
+    },
+    getAutocomplete: () => input.getAttribute("autocomplete"),
   };
 }
