@@ -43,14 +43,19 @@ def get_kartu_putih():
         m.prodi,
         m.nama,
         d1.nama AS 'p1',
+        d1.id_dosen AS 'p1_id',
         d2.nama AS 'p2',
+        d2.id_dosen AS 'p2_id',
         k.judul,
         k.tanggal,
         k.nomor_surat
         FROM kartu k
         JOIN mahasiswa m ON k.nim = m.nim
         JOIN dosen d1 ON k.pembimbing_1 = d1.id_dosen
-        JOIN dosen d2 ON k.pembimbing_2 = d2.id_dosen WHERE k.tipe = 'Putih' ORDER BY k.id_kartu DESC;""")
+        JOIN dosen d2 ON k.pembimbing_2 = d2.id_dosen 
+        WHERE k.tipe = 'Putih' 
+        ORDER BY k.id_kartu DESC;
+    """)
     rows = cursor.fetchall()
     column_names = [description[0] for description in cursor.description]
     data = []
@@ -129,5 +134,77 @@ def api_get_dosen_query():
     results = api_get_dosen(q, prodi)
     return jsonify(results)
 
+
+@app.post("/api/post/kartu-putih")
+def post_kartu_putih():
+    data = request.json
+    print(data)
+    required_keys = ["nim", "judul", "tanggal", "nomor_surat", "p1", "p2"]
+
+    # Validate required fields
+    if not all(k in data and data[k] for k in required_keys):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    conn = sqlite3.connect("./db/database.db")
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO kartu (nim, judul, tanggal, nomor_surat, pembimbing_1, pembimbing_2, tipe)
+        VALUES (?, ?, ?, ?, ?, ?, 'Putih');
+    """, (
+        data["nim"],
+        data["judul"],
+        data["tanggal"],
+        data["nomor_surat"],
+        data["p1"],
+        data["p2"],
+    ))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"success": True})
+
+
+@app.post("/api/update/kartu-putih")
+def update_kartu_putih():
+    data = request.json
+    required = ["id_kartu", "nim", "judul", "tanggal", "nomor_surat", "p1", "p2"]
+    if not all(k in data and data[k] for k in required):
+        return jsonify({"error": "Missing fields"}), 400
+
+    try:
+        conn = sqlite3.connect("./db/database.db")
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE kartu
+            SET nim = ?, judul = ?, tanggal = ?, nomor_surat = ?, pembimbing_1 = ?, pembimbing_2 = ?
+            WHERE id_kartu = ? AND tipe = 'Putih'
+        """, (
+            data["nim"],
+            data["judul"],
+            data["tanggal"],
+            data["nomor_surat"],
+            data["p1"],
+            data["p2"],
+            data["id_kartu"]
+        ))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.delete("/api/delete/kartu-putih/<int:id_kartu>")
+def delete_kartu_putih(id_kartu):
+    conn = sqlite3.connect("./db/database.db")
+    cur = conn.cursor()
+    cur.execute("DELETE FROM kartu WHERE id_kartu = ?", (id_kartu,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5678)
+

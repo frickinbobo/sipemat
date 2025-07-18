@@ -350,11 +350,20 @@ export default class DatePicker {
     if (this.config.autoClose) this.hide();
   }
   _position() {
-    const r = this.input.getBoundingClientRect(),
-      t = window.pageYOffset || document.documentElement.scrollTop,
-      l = window.pageXOffset || document.documentElement.scrollLeft;
-    this.panel.style.top = `${r.bottom + t}px`;
-    this.panel.style.left = `${r.left + l}px`;
+    // const r = this.input.getBoundingClientRect(),
+    //   t = window.pageYOffset || document.documentElement.scrollTop,
+    //   l = window.pageXOffset || document.documentElement.scrollLeft;
+    // this.panel.style.top = `${r.bottom + t}px`;
+    // this.panel.style.left = `${r.left + l}px`;
+    const r = this.input.getBoundingClientRect();
+    const containerRect = this.panel.offsetParent?.getBoundingClientRect() ?? {
+      top: 0,
+      left: 0,
+    };
+
+    this.panel.style.position = "absolute";
+    this.panel.style.top = `${r.bottom - containerRect.top}px`;
+    this.panel.style.left = `${r.left - containerRect.left}px`;
   }
   _focusDate(d, preventScroll = false) {
     const off =
@@ -566,7 +575,7 @@ export default class DatePicker {
     this.panel = document.createElement("div");
     this.panel.id = this._id;
     this.panel.className =
-      "absolute z-50 mt-2 p-4 bg-base-100 rounded-box shadow hidden";
+      "absolute z-[999] mt-2 p-4 bg-base-100 rounded-box shadow hidden";
     this.panel.tabIndex = -1;
     this.panel.role = "dialog";
     this.headerEl = document.createElement("div");
@@ -620,7 +629,8 @@ export default class DatePicker {
     //   ? this.input.parentNode
     //   : this.input;
     // anchor.parentNode.insertBefore(this.panel, anchor.nextSibling);
-    document.body.appendChild(this.panel);
+    const modalBox = this.input.closest(".modal-box");
+    (modalBox || document.body).appendChild(this.panel);
     this._syncHeaderSelectors();
     this._renderCalendar();
   }

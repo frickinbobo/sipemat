@@ -57,7 +57,7 @@ block content %}
           <input
             id="nomor-surat"
             class="input input-bordered !w-full my-2"
-            name="nomor-surat"
+            name="nomor_surat"
             type="number"
             placeholder="Masukkan Nomor Surat Tugas"
             required
@@ -86,6 +86,104 @@ block content %}
   </div>
   <div id="table" class="mx-auto my-4"></div>
 </div>
+<dialog id="delete-modal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">Konfirmasi</h3>
+    <p class="py-4">Yakin ingin menghapus data ini?</p>
+    <div class="modal-action">
+      <button class="btn btn-outline btn-sm" id="cancel-delete">Batal</button>
+      <button class="btn btn-error btn-sm" id="confirm-delete">Hapus</button>
+    </div>
+  </div>
+</dialog>
+<dialog id="editModal" class="modal">
+  <div class="modal-box w-full max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">Edit Data Kartu Putih</h3>
+    <form id="editForm">
+      <input type="hidden" id="edit-id" />
+
+      <label class="form-control !w-full">
+        <div class="label">
+          <span class="label-text">NIM</span>
+        </div>
+        <input
+          id="edit-nim"
+          type="text"
+          class="input input-bordered !w-full my-2"
+          required
+        />
+      </label>
+
+      <label class="form-control !w-full">
+        <div class="label">
+          <span class="label-text">Judul</span>
+        </div>
+        <textarea
+          id="edit-judul"
+          class="textarea textarea-bordered !w-full my-2 resize-none"
+          rows="2"
+          required
+        ></textarea>
+      </label>
+
+      <label class="form-control !w-full">
+        <div class="label">
+          <span class="label-text">Tanggal Surat Tugas</span>
+        </div>
+        <input
+          id="edit-tanggal"
+          class="input input-bordered !w-full my-2"
+          type="text"
+          required
+        />
+      </label>
+
+      <label class="form-control !w-full">
+        <div class="label">
+          <span class="label-text">Nomor Surat</span>
+        </div>
+        <input
+          id="edit-nomor"
+          type="text"
+          class="input input-bordered !w-full my-2"
+          required
+        />
+      </label>
+
+      <label class="form-control !w-full">
+        <div class="label">
+          <span class="label-text">Pembimbing 1</span>
+        </div>
+        <input
+          id="edit-p1"
+          type="text"
+          class="input input-bordered !w-full my-2"
+          required
+        />
+      </label>
+
+      <label class="form-control !w-full">
+        <div class="label">
+          <span class="label-text">Pembimbing 2</span>
+        </div>
+        <input
+          id="edit-p2"
+          type="text"
+          class="input input-bordered !w-full my-2"
+          required
+        />
+      </label>
+
+      <div class="modal-action pt-4">
+        <button type="submit" class="btn btn-primary">Simpan</button>
+        <button type="button" class="btn" onclick="editModal.close()">
+          Batal
+        </button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
 {% endblock %} {% block scripts %}
 <script>
   function toObject(fd) {
@@ -106,14 +204,96 @@ block content %}
     event.preventDefault();
     const formData = new FormData(form);
     let data = toObject(formData);
+    data["judul"] = document.querySelector("textarea").value;
     data["tanggal"] = document.getElementById("tanggal-surat").dataset.rawDate;
+
     const buttonSubmit = document.getElementById("button-submit");
-    console.log(JSON.stringify(data));
+    buttonSubmit.disabled = true;
+    buttonSubmit.textContent = "Menyimpan...";
+    console.log("Form payload to submit:", data);
+
+    try {
+      const res = await fetch("/api/post/kartu-putih", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) throw new Error("Gagal menyimpan data");
+
+      const json = await res.json();
+      if (json.success) {
+        showToast("Data berhasil disimpan", "success");
+        window.table.load();
+        form.reset();
+        document.querySelector("textarea").value = "";
+        document.getElementById("tanggal-surat").value = "";
+        tanggalSurat.setDate(new Date());
+
+        nimAutocomplete.clearInput();
+        namaAutocomplete.clearInput();
+        prodiAutocomplete.clearInput();
+        pembimbing1Autocomplete.clearInput();
+        pembimbing2Autocomplete.clearInput();
+      } else {
+        showToast("Gagal menyimpan: " + JSON.stringify(json), "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Terjadi kesalahan saat menyimpan data", "error");
+    } finally {
+      buttonSubmit.disabled = false;
+      buttonSubmit.textContent = "Simpan";
+    }
   });
+  document.getElementById("editForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const data = {
+      id_kartu: document.getElementById("edit-id").value,
+      nim: document.getElementById("edit-nim").value,
+      judul: document.getElementById("edit-judul").value,
+      tanggal: document.getElementById("edit-tanggal").value,
+      nomor_surat: document.getElementById("edit-nomor").value,
+      p1: document.getElementById("edit-p1").value,
+      p2: document.getElementById("edit-p2").value,
+    };
+
+    try {
+      const res = await fetch("/api/update/kartu-putih", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (result.success) {
+        showToast("Berhasil diperbarui!", "success");
+        await dataTable.load();
+        editModal.close();
+      } else {
+        showToast(result.error || "Gagal memperbarui!", "error");
+      }
+    } catch (err) {
+      showToast("Terjadi kesalahan saat memperbarui", "error");
+    }
+  };
 </script>
 <script type="module">
   import DatePicker from "/static/js/datepicker/datepicker.js";
   window.tanggalSurat = new DatePicker("#tanggal-surat", {
+    showResetButton: true,
+    resetBehavior: "today",
+    defaultDate: new Date(),
+    selectDefaultDate: true,
+    dateFormat: "DD MMMM YYYY",
+    todayLabel: "Hari Ini",
+    locale: "id-ID",
+    placeholder: "Masukkan Tanggal Surat Tugas",
+    inputName: "tanggal",
+    onSelect(d, iso) {
+      console.log("picked", iso);
+    },
+  });
+  window.editTanggal = new DatePicker("#edit-tanggal", {
     showResetButton: true,
     resetBehavior: "today",
     defaultDate: new Date(),
@@ -299,7 +479,7 @@ block content %}
 <script type="module">
   import DataTable from "/static/js/datatable/datatable.js";
   const nomorSurat = document.getElementById("nomor-surat");
-  const table = new DataTable({
+  window.table = new DataTable({
     container: "#table",
     columns: [
       { key: "id_kartu", label: "ID" },
@@ -334,16 +514,31 @@ block content %}
           const btnEdit = document.createElement("button");
           btnEdit.className = "btn btn-xs btn-primary join-item";
           btnEdit.textContent = "Ubah";
+          // btnEdit.onclick = () => {
+          //   console.log("Edit row", row);
+          //   nimAutocomplete.setRawValue(row.nim);
+          //   namaAutocomplete.setRawValue(row.nama);
+          //   prodiAutocomplete.setValueBySearch(row.prodi);
+          //   pembimbing1Autocomplete.setRawValue(row.p1);
+          //   pembimbing2Autocomplete.setRawValue(row.p2);
+          //   document.querySelector("textarea").value = row.judul;
+          //   tanggalSurat.setDate(row.tanggal);
+          //   nomorSurat.value = row.nomor_surat;
+          //   const p1 = document.getElementById("p1");
+          //   const p2 = document.getElementById("p2");
+          //   p1.value = row.p1_id;
+          //   p2.value = row.p2_id;
+          // };
           btnEdit.onclick = () => {
-            console.log("Edit row", row);
-            nimAutocomplete.setRawValue(row.nim);
-            namaAutocomplete.setRawValue(row.nama);
-            prodiAutocomplete.setValueBySearch(row.prodi);
-            pembimbing1Autocomplete.setRawValue(row.p1);
-            pembimbing2Autocomplete.setRawValue(row.p2);
-            document.querySelector("textarea").value = row.judul;
-            tanggalSurat.setDate(row.tanggal);
-            nomorSurat.value = row.nomor_surat;
+            // Fill modal fields
+            document.getElementById("edit-id").value = row.id_kartu;
+            document.getElementById("edit-nim").value = row.nim;
+            document.getElementById("edit-judul").value = row.judul;
+            window.editTanggal.setDate(row.tanggal);
+            document.getElementById("edit-nomor").value = row.nomor_surat;
+            document.getElementById("edit-p1").value = row.pembimbing_1;
+            document.getElementById("edit-p2").value = row.pembimbing_2;
+            editModal.showModal();
           };
 
           const btnDelete = document.createElement("button");
@@ -351,7 +546,8 @@ block content %}
           btnDelete.textContent = "Hapus";
           btnDelete.onclick = () => {
             console.log("Delete row", row);
-            // Add delete logic here
+            deleteRowData = row;
+            deleteModal.showModal(); // DaisyUI modal open
           };
 
           container.append(btnEdit, btnDelete);
@@ -372,5 +568,34 @@ block content %}
     },
     dataLoader: () => fetch("/api/get/kartu-putih/").then((res) => res.json()),
   });
+</script>
+<script>
+  const deleteModal = document.getElementById("delete-modal");
+  const cancelBtn = document.getElementById("cancel-delete");
+  const confirmBtn = document.getElementById("confirm-delete");
+
+  let deleteRowData = null;
+
+  cancelBtn.onclick = () => {
+    deleteRowData = null;
+    deleteModal.close(); // DaisyUI modal close
+  };
+
+  confirmBtn.onclick = async () => {
+    if (!deleteRowData) return;
+    const res = await fetch(
+      "/api/delete/kartu-putih/" + deleteRowData.id_kartu,
+      {
+        method: "DELETE",
+      }
+    );
+    if (res.ok) {
+      showToast("Berhasil dihapus!", "success");
+      window.table.load(); // or your public DataTable instance
+    } else {
+      showToast("Gagal menghapus data!", "error");
+    }
+    deleteModal.close();
+  };
 </script>
 {% endblock %}
