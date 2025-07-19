@@ -161,36 +161,46 @@ export default class DatePicker {
     this.config.onInit(this);
   }
   show() {
-    // If it’s already open, do nothing
+    // If already open, do nothing
     if (!this.panel.classList.contains("hidden")) return;
 
-    /* 1.  Reveal and position the dropdown */
+    /* 1. Reveal and position the dropdown */
     this.panel.classList.remove("hidden");
-    this._position(); // keeps your existing placement logic
+    this._position();
 
-    /* 2.  Ensure the entire panel is in view (vertical only) */
-    const rect = this.panel.getBoundingClientRect();
-    const buffer = 4; // small breathing room
-    let deltaY = 0; // how much we need to scroll
+    /* 2. Determine scroll container (modal-box or window) */
+    const modalBox = this.input.closest(".modal-box");
+    const scrollContainer = modalBox || window;
 
-    if (rect.bottom + buffer > window.innerHeight) {
-      // Panel sticks out below the viewport → scroll down just enough
-      deltaY = rect.bottom - window.innerHeight + buffer;
-    } else if (rect.top - buffer < 0) {
-      // Panel sticks out above the viewport → scroll up just enough
-      deltaY = rect.top - buffer; // negative value scrolls upward
+    const panelRect = this.panel.getBoundingClientRect();
+    const containerRect = modalBox
+      ? modalBox.getBoundingClientRect()
+      : { top: 0, bottom: window.innerHeight };
+
+    const buffer = 4;
+    let scrollDelta = 0;
+
+    if (panelRect.bottom + buffer > containerRect.bottom) {
+      scrollDelta = panelRect.bottom - containerRect.bottom + buffer;
+    } else if (panelRect.top - buffer < containerRect.top) {
+      scrollDelta = panelRect.top - containerRect.top - buffer;
     }
 
-    if (deltaY !== 0) {
-      window.scrollBy({ top: deltaY, behavior: "smooth" });
+    if (scrollDelta !== 0) {
+      if (modalBox) {
+        modalBox.scrollBy({ top: scrollDelta, behavior: "smooth" });
+      } else {
+        window.scrollBy({ top: scrollDelta, behavior: "smooth" });
+      }
     }
 
-    /* 3.  Put focus on the selected date (or today) WITHOUT more scrolling */
+    /* 3. Focus selected date without triggering scroll */
     this._focusDate(this.selectedDate || new Date(), /*preventScroll=*/ true);
 
-    /* 4.  Fire lifecycle hook */
+    /* 4. Fire lifecycle hook */
     this.config.onFocus(this);
   }
+
   hide() {
     this.panel.classList.add("hidden");
   }
@@ -635,6 +645,21 @@ export default class DatePicker {
     this._renderCalendar();
   }
   _bindEvents() {
+    // 1️⃣ Always open on tap (mobile fix)
+    this.input.addEventListener("pointerdown", (e) => {
+      // If it’s already open, skip
+      if (!this.panel.classList.contains("hidden")) return;
+      // Prevent the native focus/tap weirdness on iOS/Android
+      e.preventDefault();
+      // Programmatically focus + open
+      this.input.focus({ preventScroll: true });
+      this.show();
+    });
+
+    // 2️⃣ Prevent tapping inside the calendar from blurring the input
+    this.panel.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+    });
     this._onInputFocus = () => {
       // Skip if we literally just closed the panel (<80 ms ago)
       if (Date.now() - this._justClosedAt < 80) return;

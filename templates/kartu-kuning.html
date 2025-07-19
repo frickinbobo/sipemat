@@ -1,9 +1,9 @@
-{% extends "index.html" %} {% block title %} - Kartu Putih{% endblock %} {%
+{% extends "index.html" %} {% block title %} - Kartu Kuning{% endblock %} {%
 block content %}
 <div class="!w-full">
   <div class="card bg-base-100 w-full shadow-sm mt-2">
     <div class="card-body">
-      <h1 class="text-3xl font-bold mb-4">Kartu Putih</h1>
+      <h1 class="text-3xl font-bold mb-4">Kartu Kuning</h1>
       <form action="#" id="form">
         <input type="hidden" id="p1" name="p1" />
         <input type="hidden" id="p2" name="p2" />
@@ -39,33 +39,33 @@ block content %}
         </label>
         <label class="form-control !w-full">
           <div class="label">
-            <span class="label-text">Judul Proposal Mahasiswa</span>
+            <span class="label-text">Judul Skripsi Mahasiswa</span>
           </div>
           <textarea
             rows="1"
             data-autoresize
             class="textarea textarea-bordered resize-none overflow-hidden !w-full my-2 !min-h-0 leading-[1.5rem]"
-            placeholder="Masukkan Judul Proposal Mahasiswa"
+            placeholder="Masukkan Judul Skripsi Mahasiswa"
             oninput="autoResize(this)"
             required
           ></textarea>
         </label>
         <label class="form-control !w-full">
           <div class="label">
-            <span class="label-text">Nomor Surat Tugas</span>
+            <span class="label-text">Nomor SK</span>
           </div>
           <input
             id="nomor-surat"
             class="input input-bordered !w-full my-2"
             name="nomor_surat"
             type="number"
-            placeholder="Masukkan Nomor Surat Tugas"
+            placeholder="Masukkan Nomor SK"
             required
           />
         </label>
         <label class="form-control !w-full">
           <div class="label">
-            <span class="label-text">Tanggal Surat Tugas</span>
+            <span class="label-text">Tanggal SK</span>
           </div>
           <input
             id="tanggal-surat"
@@ -98,7 +98,7 @@ block content %}
 </dialog>
 <dialog id="editModal" class="modal">
   <div class="modal-box w-full max-w-2xl lg:h-auto h-full">
-    <h3 class="font-bold text-lg mb-4">Edit Data Kartu Putih</h3>
+    <h3 class="font-bold text-lg mb-4">Edit Data Kartu Kuning</h3>
     <form id="editForm">
       <input type="hidden" id="edit-id" />
       <input type="hidden" id="edit-p1" name="edit-p1" />
@@ -140,7 +140,7 @@ block content %}
 
       <label class="form-control !w-full">
         <div class="label">
-          <span class="label-text">Judul Proposal Mahasiswa</span>
+          <span class="label-text">Judul Skripsi Mahasiswa</span>
         </div>
         <textarea
           rows="1"
@@ -154,7 +154,7 @@ block content %}
 
       <label class="form-control !w-full">
         <div class="label">
-          <span class="label-text">Nomor Surat Tugas</span>
+          <span class="label-text">Nomor SK</span>
         </div>
         <input
           id="edit-nomor"
@@ -166,7 +166,7 @@ block content %}
 
       <label class="form-control !w-full">
         <div class="label">
-          <span class="label-text">Tanggal Surat Tugas</span>
+          <span class="label-text">Tanggal SK</span>
         </div>
         <input
           id="edit-tanggal"
@@ -217,7 +217,7 @@ block content %}
     console.log("Form payload to submit:", data);
 
     try {
-      const res = await fetch("/api/post/kartu-putih", {
+      const res = await fetch("/api/post/kartu-kuning", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -268,7 +268,7 @@ block content %}
     buttonEdit.textContent = "Mengubah...";
 
     try {
-      const res = await fetch("/api/update/kartu-putih", {
+      const res = await fetch("/api/update/kartu-kuning", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -296,7 +296,7 @@ block content %}
     dateFormat: "DD MMMM YYYY",
     todayLabel: "Hari Ini",
     locale: "id-ID",
-    placeholder: "Masukkan Tanggal Surat Tugas",
+    placeholder: "Masukkan Tanggal SK",
     inputName: "tanggal",
     onSelect(d, iso) {
       console.log("picked", iso);
@@ -310,7 +310,7 @@ block content %}
     dateFormat: "DD MMMM YYYY",
     todayLabel: "Hari Ini",
     locale: "id-ID",
-    placeholder: "Masukkan Tanggal Surat Tugas",
+    placeholder: "Masukkan Tanggal SK",
     inputName: "tanggal",
     onSelect(d, iso) {
       console.log("picked", iso);
@@ -660,7 +660,7 @@ block content %}
         label: "Nomor Surat",
         format: (_v, row) =>
           row.nomor_surat
-            ? `${row.nomor_surat}/FEBP/UNHI/${monthToRoman(row.tanggal)}/${
+            ? `${row.nomor_surat}/SKP/FEBP/UNHI/${monthToRoman(row.tanggal)}/${
                 parseDate(row.tanggal)[0]
               }`
             : "-",
@@ -732,7 +732,7 @@ block content %}
     ],
     persistSelection: true, // remember!
     rowIdKey: "id_kartu", // unique field
-    storageKey: "kartu-putih-table-selections",
+    storageKey: "kartu-kuning-table-selections",
     onPrint: (sel, inst) => {
       console.log("About to print", sel.length, "rows:", sel);
       console.log(inst);
@@ -741,7 +741,7 @@ block content %}
     onSelect: (rows) => {
       console.log("Selection changed:", rows);
     },
-    dataLoader: () => fetch("/api/get/kartu-putih/").then((res) => res.json()),
+    dataLoader: () => fetch("/api/get/kartu-kuning/").then((res) => res.json()),
   });
 </script>
 <script>
@@ -759,7 +759,7 @@ block content %}
   confirmBtn.onclick = async () => {
     if (!deleteRowData) return;
     const res = await fetch(
-      "/api/delete/kartu-putih/" + deleteRowData.id_kartu,
+      "/api/delete/kartu-kuning/" + deleteRowData.id_kartu,
       {
         method: "DELETE",
       }
